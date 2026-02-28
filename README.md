@@ -444,6 +444,13 @@ registries/experimental/
 
 ## Future Improvements
 
+### Agentic Improvements
+- **Conversation memory** — persist agent context across sessions so returning users don't start from scratch
+- **Widget learning** — track which fields users fill vs skip, feed usage patterns back to `widget_generator` to produce better forms over turn
+- **Multi-modal input** — support image and voice attachments through the widget system (camera capture, voice-to-text fields)
+- **Agent self-correction** — when JSON Schema parsing fails, automatically retry with `template_provider` examples as few-shot guidance
+- **Multi-turn widgets** — let `widget_generator` produce follow-up forms that refine based on previous submissions (wizard pattern driven by agent intelligence, not hardcoded UI steps)
+
 ### Performance
 - **Session pooling** — pre-create sessions for popular networks
 - **Response streaming** — true token-level streaming via `chat_token` events
