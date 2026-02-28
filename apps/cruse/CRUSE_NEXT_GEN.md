@@ -42,26 +42,107 @@ original Flask-based interface, core assistant logic, CRUSE agent network defini
 the coded tools that power widget generation are all authored and maintained by Cognizant
 Technology Solutions Corp under the Apache License 2.0.
 
-**CRUSE Agentic UI** is a full-stack rebuild of the frontend and backend that preserves the
-original agent logic while modernizing the delivery layer with Next.js, FastAPI, and
-real-time WebSocket streaming. The original Flask + SocketIO implementation remains intact
-for backward compatibility.
+**CRUSE Agentic UI** is a full-stack rebuild that goes beyond the frontend — it re-architects
+the core agent brain from a 2-agent monolith into a 4-agent separation-of-concerns design,
+adds a new coded tool for structured widget generation, and delivers a modern Next.js +
+FastAPI stack with real-time WebSocket streaming. The original Flask + SocketIO implementation
+remains intact for backward compatibility.
+
+---
+
+## Core Agent Architecture Changes
+
+The most significant contribution is the redesign of the CRUSE agent network itself
+(`registries/experimental/cruse_agent.hocon`). This is not just a UI change — it
+fundamentally restructures how the agent brain works.
+
+### Original Architecture (Upstream) — 2 Agents
+
+```
+cruse (front-man LLM) ──→ domain_expert (coded tool)
+```
+
+The original design had a single front-man LLM (`cruse`) responsible for **everything**:
+answering domain questions, deciding whether to show a form, generating raw HTML, styling
+it, and formatting the response. The `gui:` output was freeform HTML injected directly
+into a `<form>` tag.
+
+**Limitations:**
+- The LLM had to be both a domain expert and a UI designer in every turn
+- HTML output was unpredictable — different models produced wildly different markup
+- No structured schema — the frontend could not validate, type-check, or enhance the forms
+- No separation of concerns — a single prompt tried to do too much
+
+### New Architecture (This Repo) — 4 Agents
+
+```
+cruse (front-man LLM)
+  ├──→ domain_expert (coded tool / CallAgent)
+  │       └──→ target agent network (AAOSA protocol)
+  └──→ widget_generator (LLM agent)
+          └──→ template_provider (coded tool)
+```
+
+We split the monolithic front-man into a proper orchestration chain:
+
+| Agent | Type | Role |
+|-------|------|------|
+| **`cruse`** | LLM (front-man) | Orchestrates the 3-step protocol: call domain_expert, call widget_generator, format `say:`/`gui:` response |
+| **`domain_expert`** | Coded Tool | Delegates to the user-selected agent network via AAOSA Determine/Fulfill pattern (unchanged from upstream) |
+| **`widget_generator`** | LLM Agent | **NEW** — Dedicated agent that analyzes conversation context and decides whether to generate a JSON Schema widget, or return `{"display": false}` to skip |
+| **`template_provider`** | Coded Tool | **NEW** — 345-line Python `CodedTool` that supplies structured JSON Schema templates, 12 field-type examples, and a curated Material Design icon library |
+
+### What Changed in the HOCON
+
+| Aspect | Original (Upstream) | This Repo |
+|--------|-------------------|-----------|
+| **Agent count** | 2 (`cruse`, `domain_expert`) | 4 (`cruse`, `domain_expert`, `widget_generator`, `template_provider`) |
+| **GUI output format** | Raw HTML (freeform, unparseable) | JSON Schema (structured, typed, validatable) |
+| **Widget generation** | Inline in `cruse` prompt — the LLM freestyles everything | Dedicated `widget_generator` LLM with structured prompting + `template_provider` tool |
+| **Template system** | None | `WidgetTemplateProvider` coded tool with base schema, 12 field type examples, icon guidance |
+| **Front-man instructions** | ~15 lines, single step ("call tool, return HTML") | ~30 lines, explicit 3-step protocol with AAOSA Determine/Fulfill documentation |
+| **Widget skip logic** | Always generates HTML (even when unnecessary) | `widget_generator` can return `{"display": false}` — no form when none is needed |
+| **Field types** | Whatever HTML the LLM invents | 12 typed fields: text, textarea, number, boolean, checkbox, select, radio, multiselect, date, slider, rating, file upload |
+| **Icons** | None | Material Design Icons (100+ curated across 17 categories) with PascalCase naming |
+| **Colors** | Inline CSS in HTML | Hex color field per widget, contextually chosen |
+| **Validation** | None (raw HTML) | JSON Schema `required`, `minimum`, `maximum`, `minLength`, `pattern`, `format` |
+
+### New Coded Tool: `WidgetTemplateProvider`
+
+`coded_tools/experimental/cruse_agent/widget_template_provider.py` — **345 lines of new
+Python code** implementing `neuro_san.interfaces.coded_tool.CodedTool`. This tool does not
+exist in the upstream repository.
+
+| Feature | Description |
+|---------|-------------|
+| `WIDGET_SCHEMA_TEMPLATE` | Base JSON Schema structure with placeholder fields that the LLM fills in |
+| `WIDGET_TYPE_EXAMPLES` | 12 field type patterns (text, textarea, number, boolean, checkbox, select, radio, multiselect, date, slider, rating, file upload) |
+| `ICON_GUIDANCE` | 17 icon categories with 100+ curated Material Design icon names + selection principles |
+| `invoke(args, sly_data)` | Returns template, examples, icons, or all based on `request_type` parameter |
+
+### Manifest Changes
+
+| File | Original | Changed To |
+|------|----------|------------|
+| `registries/experimental/manifest.hocon` | `cruse_agent.hocon: false` | `cruse_agent.hocon: true` (enabled by default) |
+| `registries/manifest.hocon` | No CRUSE entries | Added CRUSE agent entries with `public: false` (orchestrator-only, not user-selectable) |
 
 ---
 
 ## Table of Contents
 
-1. [Architecture Overview](#architecture-overview)
-2. [What We Built on Top](#what-we-built-on-top)
-3. [Backend (FastAPI)](#backend-fastapi)
-4. [Frontend (Next.js)](#frontend-nextjs)
-5. [HOCON Configuration](#hocon-configuration)
-6. [Agent Network Visualization](#agent-network-visualization)
-7. [WebSocket Protocol](#websocket-protocol)
-8. [Widget System](#widget-system)
-9. [Running the Application](#running-the-application)
-10. [Project Structure](#project-structure)
-11. [Future Improvements](#future-improvements)
+1. [Core Agent Architecture Changes](#core-agent-architecture-changes)
+2. [Architecture Overview](#architecture-overview)
+3. [What We Built on Top](#what-we-built-on-top)
+4. [Backend (FastAPI)](#backend-fastapi)
+5. [Frontend (Next.js)](#frontend-nextjs)
+6. [HOCON Configuration](#hocon-configuration)
+7. [Agent Network Visualization](#agent-network-visualization)
+8. [WebSocket Protocol](#websocket-protocol)
+9. [Widget System](#widget-system)
+10. [Running the Application](#running-the-application)
+11. [Project Structure](#project-structure)
+12. [Future Improvements](#future-improvements)
 
 ---
 
@@ -129,7 +210,7 @@ The original CRUSE implementation is a Flask app with SocketIO that runs a block
 agent loop in a background thread. It works, but has limitations around concurrency,
 modern UI patterns, and developer experience.
 
-CRUSE Next-Gen adds the following layers **without modifying** the original code:
+CRUSE Agentic UI rebuilds the delivery layer and extends the core agent architecture:
 
 ### Backend Rebuild (FastAPI + WebSocket)
 
