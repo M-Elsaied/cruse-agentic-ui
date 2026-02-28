@@ -1,5 +1,14 @@
 # CRUSE Next-Gen: A Modern Rebuild of the Context Reactive User Experience
 
+<!-- pyml disable-next-line no-inline-html -->
+<p align="center">
+  <video src="https://github.com/M-Elsaied/cruse-agentic-ui/raw/main/assets/cruse_demo.mp4" width="100%" autoplay muted loop playsinline controls>
+    Your browser does not support the video tag.
+  </video>
+</p>
+
+---
+
 ## Credits and Acknowledgments
 
 The original **CRUSE (Context Reactive User Experience)** concept and implementation were
