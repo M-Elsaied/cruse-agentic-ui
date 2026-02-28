@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ../../
+      dockerfile: apps/cruse/Dockerfile.backend
+    ports:
+      - "5001:5001"
+    environment:
+      - AGENT_MANIFEST_FILE=registries/manifest.hocon
+      - AGENT_TOOL_PATH=coded_tools
+      - PYTHONPATH=/app
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    volumes:
+      - ../../registries:/app/registries:ro
+      - ../../coded_tools:/app/coded_tools:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/systems"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:5001
+      - NEXT_PUBLIC_WS_URL=ws://backend:5001
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

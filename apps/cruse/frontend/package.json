@@ -1,0 +1,46 @@
+{
+  "name": "cruse-next-gen",
+  "version": "2.0.0",
+  "private": true,
+  "description": "CRUSE Next-Gen: Context Reactive User Experience with dynamic AI-generated UI",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@emotion/cache": "11.14.0",
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/icons-material": "5.18.0",
+    "@mui/material": "5.18.0",
+    "@mui/x-date-pickers": "7.29.4",
+    "@rjsf/core": "5.24.13",
+    "@rjsf/mui": "5.24.13",
+    "@rjsf/utils": "5.24.13",
+    "@rjsf/validator-ajv8": "5.24.13",
+    "dayjs": "1.11.19",
+    "framer-motion": "11.18.2",
+    "next": "14.2.35",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-dropzone": "14.4.1",
+    "react-markdown": "9.1.0",
+    "rehype-highlight": "7.0.2",
+    "remark-gfm": "4.0.1",
+    "zustand": "4.5.7"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.12",
+    "@types/react": "18.3.28",
+    "@types/react-dom": "18.3.7",
+    "eslint": "8.57.1",
+    "eslint-config-next": "14.2.35",
+    "typescript": "5.9.3"
+  }
+}

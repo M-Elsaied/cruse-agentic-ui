@@ -24,8 +24,8 @@
     "experimental/mdap_decomposer.hocon": true,
     "experimental/copy_cat.hocon": true,
     "experimental/kwik_agents.hocon": false,
-    # Set the following agent network to true before running apps/cruse/interface_flask.py
-    "experimental/cruse_agent.hocon": false,
+    # Set the following agent network to true before running apps/cruse/interface_flask.py or the CRUSE Next-Gen backend
+    "experimental/cruse_agent.hocon": true,
     # Set the following agent network to true before running apps/conscious_assistant/interface_flask.py
     "experimental/conscious_agent.hocon": false,
     # Set the following agent network to true before running apps/log_analyzer/log_analyzer.py

@@ -35,6 +35,20 @@
     # Generated agent networks
     include "registries/generated/manifest.hocon",
 
+    #
+    # CRUSE (Context Reactive User Experience) agent networks
+    # Enable before running apps/cruse/backend or apps/cruse/interface_flask.py
+    #
+    "experimental/cruse_agent.hocon": true,
+    "experimental/cruse_theme_agent.hocon": {
+        "serve": true,
+        "public": false
+    },
+    "experimental/cruse_widget_agent.hocon": {
+        "serve": true,
+        "public": false
+    },
+
     # Currently we list each hocon file we want to serve as a key with a boolean value.
     # Eventually we might have a dictionary value with server specifications for each.
 
