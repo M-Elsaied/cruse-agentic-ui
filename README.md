@@ -1,6 +1,35 @@
-# CRUSE Next-Gen: A Modern Rebuild of the Context Reactive User Experience
+<!-- pyml disable-next-line no-inline-html -->
+<div align="center">
+
+# CRUSE Agentic UI
+
+**Context Reactive User Experience — The UI Itself Is an Agent**
+
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776ab?logo=python&logoColor=white)](https://python.org)
+[![Next.js 14](https://img.shields.io/badge/Next.js-14-000000?logo=next.js&logoColor=white)](https://nextjs.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.133-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![MUI 5](https://img.shields.io/badge/MUI-5-007FFF?logo=mui&logoColor=white)](https://mui.com)
+[![Neuro SAN](https://img.shields.io/badge/Neuro_SAN-0.6.35-ff6f00)](https://github.com/cognizant-ai-lab/neuro-san)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+An agentic frontend for [Neuro SAN](https://github.com/cognizant-ai-lab/neuro-san) multi-agent networks — with dynamic AI-generated widgets, real-time agent tracing, and interactive network visualization.
+
+</div>
+
+---
+
+### Demo
 
 https://github.com/user-attachments/assets/8cf88c66-c8c4-42dd-972b-df086c228ab9
+
+---
+
+<!-- pyml disable-next-line no-inline-html -->
+<div align="center">
+
+**Dynamic Widgets** — AI generates forms on the fly | **Live Tracing** — Watch agents communicate in real time | **Network Graph** — Interactive SVG topology
+
+</div>
 
 ---
 
@@ -9,21 +38,14 @@ https://github.com/user-attachments/assets/8cf88c66-c8c4-42dd-972b-df086c228ab9
 The original **CRUSE (Context Reactive User Experience)** concept and implementation were
 created by the **Cognizant AI Lab** team as part of the
 [Neuro SAN Studio](https://github.com/cognizant-ai-lab/neuro-san-studio) project. The
-original Flask-based interface (`apps/cruse/interface_flask.py`), the core assistant logic
-(`apps/cruse/cruse_assistant.py`), the CRUSE agent network definition
-(`registries/experimental/cruse_agent.hocon`), and the coded tools that power widget
-generation (`coded_tools/experimental/cruse_agent/`) are all authored and maintained by
-Cognizant Technology Solutions Corp under the Apache License 2.0.
+original Flask-based interface, core assistant logic, CRUSE agent network definition, and
+the coded tools that power widget generation are all authored and maintained by Cognizant
+Technology Solutions Corp under the Apache License 2.0.
 
-The CRUSE system introduced the idea of an **agentic UI layer** that wraps any Neuro SAN
-agent network with a context-reactive interface. Rather than presenting static forms, CRUSE
-analyzes each conversation turn and dynamically generates JSON Schema widgets that adapt to
-what the user is doing. This is a fundamentally different approach to human-agent
-interaction: the UI itself is an agent.
-
-**CRUSE Next-Gen** is a full-stack rebuild of the frontend and backend that preserves the
-original agent logic while modernizing the delivery layer. The original Flask + SocketIO
-implementation remains intact and fully functional for backward compatibility.
+**CRUSE Agentic UI** is a full-stack rebuild of the frontend and backend that preserves the
+original agent logic while modernizing the delivery layer with Next.js, FastAPI, and
+real-time WebSocket streaming. The original Flask + SocketIO implementation remains intact
+for backward compatibility.
 
 ---
 
