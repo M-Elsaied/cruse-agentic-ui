@@ -53,7 +53,7 @@ export function AdminStatsPanel() {
     );
   }
 
-  const networkEntries = Object.entries(stats.sessions_by_network).sort((a, b) => b[1] - a[1]);
+  const networkEntries = Object.entries(stats.sessions_by_network || {}).sort((a, b) => b[1] - a[1]);
   const maxCount = Math.max(...networkEntries.map(([, count]) => count), 1);
 
   return (
@@ -109,7 +109,7 @@ export function AdminStatsPanel() {
 
       {/* Unique users */}
       <Typography variant="body2" color="text.secondary">
-        {Object.keys(stats.sessions_by_user).length} unique user(s)
+        {Object.keys(stats.sessions_by_user || {}).length} unique user(s)
       </Typography>
     </Box>
   );
