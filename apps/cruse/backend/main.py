@@ -78,7 +78,7 @@ log_buffer = LogRingBuffer(maxlen=500)
 
 
 @app.get("/api/systems")
-async def list_systems(user: ClerkUser = Depends(get_current_user)):
+async def list_systems(_user: ClerkUser = Depends(get_current_user)):
     """Return the list of available agent networks."""
     try:
         systems = session_manager.get_available_systems()
@@ -133,7 +133,7 @@ async def list_sessions(user: ClerkUser = Depends(get_current_user)):
 
 
 @app.get("/api/connectivity/{agent_network:path}")
-async def get_network_connectivity(agent_network: str, user: ClerkUser = Depends(get_current_user)):
+async def get_network_connectivity(agent_network: str, _user: ClerkUser = Depends(get_current_user)):
     """Return the merged CRUSE + target network connectivity.
 
     Returns the full call graph that includes the CRUSE orchestrator layer
@@ -219,19 +219,19 @@ async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Que
 
 
 @app.get("/api/admin/sessions")
-async def admin_list_sessions(user: ClerkUser = Depends(require_admin)):
+async def admin_list_sessions(_user: ClerkUser = Depends(require_admin)):
     """List all active sessions (admin only)."""
     return {"sessions": session_manager.list_sessions()}
 
 
 @app.get("/api/admin/stats")
-async def admin_stats(user: ClerkUser = Depends(require_admin)):
+async def admin_stats(_user: ClerkUser = Depends(require_admin)):
     """Return usage statistics (admin only)."""
     return session_manager.get_stats()
 
 
 @app.delete("/api/admin/session/{session_id}")
-async def admin_delete_session(session_id: str, user: ClerkUser = Depends(require_admin)):
+async def admin_delete_session(session_id: str, _user: ClerkUser = Depends(require_admin)):
     """Force-destroy any session (admin only)."""
     destroyed = session_manager.destroy_session(session_id)
     if not destroyed:
