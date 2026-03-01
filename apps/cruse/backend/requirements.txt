@@ -2,3 +2,6 @@ fastapi==0.133.1
 uvicorn[standard]==0.41.0
 websockets==16.0
 pydantic==2.12.5
+PyJWT==2.9.0
+cryptography==44.0.0
+httpx==0.28.1
