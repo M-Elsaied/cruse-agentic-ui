@@ -14,6 +14,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - CLERK_ISSUER_URL=${CLERK_ISSUER_URL:-}
     volumes:
       - ../../registries:/app/registries:ro
       - ../../coded_tools:/app/coded_tools:ro
@@ -33,6 +35,9 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=http://backend:5001
       - NEXT_PUBLIC_WS_URL=ws://backend:5001
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+      - NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
     depends_on:
       backend:
         condition: service_healthy
