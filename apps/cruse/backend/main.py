@@ -215,6 +215,15 @@ async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Que
             pass
 
 
+# ─── User Info ───────────────────────────────────────────────────
+
+
+@app.get("/api/me")
+async def get_me(user: ClerkUser = Depends(get_current_user)):
+    """Return the authenticated user's info including role."""
+    return {"user_id": user.user_id, "email": user.email, "role": user.role}
+
+
 # ─── Admin Endpoints ─────────────────────────────────────────────
 
 
