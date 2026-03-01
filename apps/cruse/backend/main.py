@@ -76,7 +76,7 @@ async def list_systems():
     try:
         systems = session_manager.get_available_systems()
         return {"systems": systems}
-    except Exception as exc:  # pylint: disable=broad-exception-caught
+    except Exception as exc:
         logger.exception("Failed to list systems")
         raise HTTPException(status_code=500, detail="Failed to retrieve available systems") from exc
 
@@ -99,7 +99,7 @@ async def create_session(body: SessionCreate):
             "theme": theme,
             "sample_queries": sample_queries,
         }
-    except Exception as exc:  # pylint: disable=broad-exception-caught
+    except Exception as exc:
         logger.exception("Failed to create session for %s", body.agent_network)
         raise HTTPException(status_code=500, detail="Failed to create session") from exc
 
@@ -134,7 +134,7 @@ async def get_network_connectivity(agent_network: str):
         return result
     except (KeyError, ValueError) as exc:
         raise HTTPException(status_code=404, detail=f"Agent network '{agent_network}' not found") from exc
-    except Exception as exc:  # pylint: disable=broad-exception-caught
+    except Exception as exc:
         logger.exception("Failed to get connectivity for %s", agent_network)
         raise HTTPException(status_code=500, detail="Failed to retrieve network connectivity") from exc
 

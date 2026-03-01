@@ -166,7 +166,7 @@ def get_cruse_connectivity(target_network_name: str) -> dict:
         config = target_network.get_config()
         if "metadata" in config:
             metadata = config["metadata"]
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         logger.debug("Could not extract metadata for %s", target_network_name)
 
     return {
