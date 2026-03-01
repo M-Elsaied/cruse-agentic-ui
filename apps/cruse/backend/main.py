@@ -76,9 +76,9 @@ async def list_systems():
     try:
         systems = session_manager.get_available_systems()
         return {"systems": systems}
-    except Exception:
+    except Exception as exc:  # pylint: disable=broad-exception-caught
         logger.exception("Failed to list systems")
-        raise HTTPException(status_code=500, detail="Failed to retrieve available systems")
+        raise HTTPException(status_code=500, detail="Failed to retrieve available systems") from exc
 
 
 @app.post("/api/session")
@@ -99,9 +99,9 @@ async def create_session(body: SessionCreate):
             "theme": theme,
             "sample_queries": sample_queries,
         }
-    except Exception:
+    except Exception as exc:  # pylint: disable=broad-exception-caught
         logger.exception("Failed to create session for %s", body.agent_network)
-        raise HTTPException(status_code=500, detail="Failed to create session")
+        raise HTTPException(status_code=500, detail="Failed to create session") from exc
 
 
 @app.delete("/api/session/{session_id}")
@@ -134,9 +134,9 @@ async def get_network_connectivity(agent_network: str):
         return result
     except (KeyError, ValueError) as exc:
         raise HTTPException(status_code=404, detail=f"Agent network '{agent_network}' not found") from exc
-    except Exception:
+    except Exception as exc:  # pylint: disable=broad-exception-caught
         logger.exception("Failed to get connectivity for %s", agent_network)
-        raise HTTPException(status_code=500, detail="Failed to retrieve network connectivity")
+        raise HTTPException(status_code=500, detail="Failed to retrieve network connectivity") from exc
 
 
 # ─── WebSocket Endpoint ──────────────────────────────────────────
@@ -182,11 +182,11 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
 
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected for session %s", session_id)
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         logger.exception("WebSocket error for session %s", session_id)
         try:
             await send_event(websocket, ServerEventType.ERROR, {"message": "Connection error"})
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             pass
 
 
@@ -207,8 +207,10 @@ async def startup():
     def _warm():
         logger.info("Warming caches...")
         session_manager.get_available_systems()
-        from apps.cruse.backend.session_manager import _get_cached_direct_factory
-        from apps.cruse.backend.session_manager import _get_cached_factory
+        from apps.cruse.backend.session_manager import (  # pylint: disable=import-outside-toplevel
+            _get_cached_direct_factory,
+        )
+        from apps.cruse.backend.session_manager import _get_cached_factory  # pylint: disable=import-outside-toplevel
 
         _get_cached_factory()
         _get_cached_direct_factory()

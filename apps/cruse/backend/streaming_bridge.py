@@ -116,7 +116,7 @@ async def process_chat_message(
                 # Legacy HTML fallback - send as widget with raw HTML marker
                 await send_event(websocket, ServerEventType.WIDGET_SCHEMA, {"_html": content})
 
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         logger.exception("Error processing chat message")
         await send_event(websocket, ServerEventType.ERROR, {"message": "An error occurred processing your message"})
 

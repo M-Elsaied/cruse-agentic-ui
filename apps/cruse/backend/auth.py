@@ -67,7 +67,7 @@ class ClerkJWTVerifier:
                 self._jwks = resp.json()
                 self._jwks_fetched_at = time.time()
                 logger.info("JWKS keys fetched from %s", jwks_url)
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             logger.exception("Failed to fetch JWKS from %s", jwks_url)
 
     def _get_issuer(self) -> str | None:
@@ -183,6 +183,6 @@ async def verify_ws_token(token: str) -> ClerkUser | None:
     """
     try:
         return await clerk_verifier.verify_token(token)
-    except (ValueError, Exception):
+    except Exception:  # pylint: disable=broad-exception-caught
         logger.debug("WebSocket token verification failed")
         return None
