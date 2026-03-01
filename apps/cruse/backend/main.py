@@ -18,12 +18,19 @@ import asyncio
 import logging
 import os
 
+from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import HTTPException
+from fastapi import Query
 from fastapi import WebSocket
 from fastapi import WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
+from apps.cruse.backend.auth import ClerkUser
+from apps.cruse.backend.auth import clerk_verifier
+from apps.cruse.backend.auth import get_current_user
+from apps.cruse.backend.auth import require_admin
+from apps.cruse.backend.auth import verify_ws_token
 from apps.cruse.backend.log_capture import LogRingBuffer
 from apps.cruse.backend.models import ChatMessage
 from apps.cruse.backend.models import ServerEventType
@@ -71,7 +78,7 @@ log_buffer = LogRingBuffer(maxlen=500)
 
 
 @app.get("/api/systems")
-async def list_systems():
+async def list_systems(_user: ClerkUser = Depends(get_current_user)):
     """Return the list of available agent networks."""
     try:
         systems = session_manager.get_available_systems()
@@ -82,14 +89,14 @@ async def list_systems():
 
 
 @app.post("/api/session")
-async def create_session(body: SessionCreate):
+async def create_session(body: SessionCreate, user: ClerkUser = Depends(get_current_user)):
     """Create a new CRUSE chat session for the specified agent network.
 
     Session creation is instant (lazy init). The expensive agent session
     setup happens on the first chat message instead.
     """
     try:
-        session_id = session_manager.create_session(body.agent_network)
+        session_id = session_manager.create_session(body.agent_network, user.user_id)
         timeout_manager.touch(session_id)
         theme = get_theme_for_network(body.agent_network)
         sample_queries = get_sample_queries_for_network(body.agent_network)
@@ -105,23 +112,28 @@ async def create_session(body: SessionCreate):
 
 
 @app.delete("/api/session/{session_id}")
-async def delete_session(session_id: str):
+async def delete_session(session_id: str, user: ClerkUser = Depends(get_current_user)):
     """Destroy an existing chat session."""
-    destroyed = session_manager.destroy_session(session_id)
-    if not destroyed:
+    cruse_session = session_manager.get_session(session_id)
+    if cruse_session is None:
         raise HTTPException(status_code=404, detail="Session not found")
+    if cruse_session.user_id != user.user_id and user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to delete this session")
+    session_manager.destroy_session(session_id)
     timeout_manager.remove(session_id)
     return {"status": "destroyed", "session_id": session_id}
 
 
 @app.get("/api/sessions")
-async def list_sessions():
-    """List all active sessions."""
-    return {"sessions": session_manager.list_sessions()}
+async def list_sessions(user: ClerkUser = Depends(get_current_user)):
+    """List active sessions. Admins see all; users see only their own."""
+    if user.role == "admin":
+        return {"sessions": session_manager.list_sessions()}
+    return {"sessions": session_manager.list_sessions_for_user(user.user_id)}
 
 
 @app.get("/api/connectivity/{agent_network:path}")
-async def get_network_connectivity(agent_network: str):
+async def get_network_connectivity(agent_network: str, _user: ClerkUser = Depends(get_current_user)):
     """Return the merged CRUSE + target network connectivity.
 
     Returns the full call graph that includes the CRUSE orchestrator layer
@@ -143,7 +155,7 @@ async def get_network_connectivity(agent_network: str):
 
 
 @app.websocket("/ws/chat/{session_id}")
-async def websocket_chat(websocket: WebSocket, session_id: str):
+async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Query(None)):
     """WebSocket endpoint for real-time chat with a CRUSE session.
 
     Protocol:
@@ -159,9 +171,22 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
         - done: Response cycle complete
         - error: Error occurred
     """
+    if not token:
+        await websocket.close(code=4001, reason="Missing authentication token")
+        return
+
+    ws_user = await verify_ws_token(token)
+    if ws_user is None:
+        await websocket.close(code=4003, reason="Invalid authentication token")
+        return
+
     cruse_session = session_manager.get_session(session_id)
     if cruse_session is None:
         await websocket.close(code=4004, reason="Session not found")
+        return
+
+    if cruse_session.user_id != ws_user.user_id and ws_user.role != "admin":
+        await websocket.close(code=4003, reason="Not authorized for this session")
         return
 
     await websocket.accept()
@@ -190,6 +215,31 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
             pass
 
 
+# ─── Admin Endpoints ─────────────────────────────────────────────
+
+
+@app.get("/api/admin/sessions")
+async def admin_list_sessions(_user: ClerkUser = Depends(require_admin)):
+    """List all active sessions (admin only)."""
+    return {"sessions": session_manager.list_sessions()}
+
+
+@app.get("/api/admin/stats")
+async def admin_stats(_user: ClerkUser = Depends(require_admin)):
+    """Return usage statistics (admin only)."""
+    return session_manager.get_stats()
+
+
+@app.delete("/api/admin/session/{session_id}")
+async def admin_delete_session(session_id: str, _user: ClerkUser = Depends(require_admin)):
+    """Force-destroy any session (admin only)."""
+    destroyed = session_manager.destroy_session(session_id)
+    if not destroyed:
+        raise HTTPException(status_code=404, detail="Session not found")
+    timeout_manager.remove(session_id)
+    return {"status": "destroyed", "session_id": session_id}
+
+
 # ─── Startup / Shutdown ──────────────────────────────────────────
 
 
@@ -197,6 +247,7 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
 async def startup():
     """Start background tasks and warm caches."""
     logger.info("CRUSE Next-Gen backend starting...")
+    await clerk_verifier.init()
     # Attach the log ring buffer to the root logger for debug streaming
     log_buffer.setFormatter(logging.Formatter("%(message)s"))
     logging.getLogger().addHandler(log_buffer)
