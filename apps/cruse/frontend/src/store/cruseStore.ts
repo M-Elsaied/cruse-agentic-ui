@@ -54,6 +54,10 @@ interface CruseState {
   connectivityData: ConnectivityData | null;
   connectivityLoading: boolean;
 
+  // Auth
+  userRole: 'admin' | 'user' | null;
+  adminDrawerOpen: boolean;
+
   // UI
   darkMode: boolean;
   pendingInput: string | null;
@@ -87,6 +91,8 @@ interface CruseState {
   addLogEntry: (entry: ServerLogEntry) => void;
   clearDebugEntries: () => void;
   setDebugActiveTab: (tab: number) => void;
+  setUserRole: (role: 'admin' | 'user' | null) => void;
+  toggleAdminDrawer: () => void;
   toggleNetworkDrawer: () => void;
   setConnectivityData: (data: ConnectivityData | null) => void;
   setConnectivityLoading: (loading: boolean) => void;
@@ -114,6 +120,8 @@ const initialState = {
   debugLogEntries: [],
   debugUnreadCount: 0,
   debugActiveTab: 0,
+  userRole: null,
+  adminDrawerOpen: false,
   networkDrawerOpen: false,
   connectivityData: null,
   connectivityLoading: false,
@@ -172,6 +180,10 @@ export const useCruseStore = create<CruseState>((set) => ({
   clearDebugEntries: () => set({ debugTraceEntries: [], debugLogEntries: [], debugUnreadCount: 0 }),
   setDebugActiveTab: (tab) => set({ debugActiveTab: tab }),
 
+  setUserRole: (role) => set({ userRole: role }),
+  toggleAdminDrawer: () =>
+    set((state) => ({ adminDrawerOpen: !state.adminDrawerOpen })),
+
   toggleNetworkDrawer: () =>
     set((state) => ({ networkDrawerOpen: !state.networkDrawerOpen })),
   setConnectivityData: (data) => set({ connectivityData: data }),
@@ -186,6 +198,8 @@ export const useCruseStore = create<CruseState>((set) => ({
       // Preserve these across resets
       availableSystems: useCruseStore.getState().availableSystems,
       darkMode: useCruseStore.getState().darkMode,
+      userRole: useCruseStore.getState().userRole,
+      adminDrawerOpen: useCruseStore.getState().adminDrawerOpen,
       networkDrawerOpen: useCruseStore.getState().networkDrawerOpen,
     }),
 }));

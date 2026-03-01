@@ -17,16 +17,17 @@ import {
 } from '@mui/material';
 import {
   AccountTree,
+  AdminPanelSettings,
   BugReport,
   DarkMode,
   LightMode,
   Add as AddIcon,
   Hub as HubIcon,
 } from '@mui/icons-material';
+import { UserButton } from '@clerk/nextjs';
 import type { SelectChangeEvent } from '@mui/material';
 import { useCruseStore } from '@/store/cruseStore';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+import { useAuthenticatedFetch } from '@/utils/api';
 
 export function Header() {
   const availableSystems = useCruseStore((s) => s.availableSystems);
@@ -46,22 +47,26 @@ export function Header() {
   const debugDrawerOpen = useCruseStore((s) => s.debugDrawerOpen);
   const debugUnreadCount = useCruseStore((s) => s.debugUnreadCount);
   const toggleDebugDrawer = useCruseStore((s) => s.toggleDebugDrawer);
+  const userRole = useCruseStore((s) => s.userRole);
+  const adminDrawerOpen = useCruseStore((s) => s.adminDrawerOpen);
+  const toggleAdminDrawer = useCruseStore((s) => s.toggleAdminDrawer);
   const networkDrawerOpen = useCruseStore((s) => s.networkDrawerOpen);
   const toggleNetworkDrawer = useCruseStore((s) => s.toggleNetworkDrawer);
+  const { authFetch, API_BASE } = useAuthenticatedFetch();
 
   const createSession = useCallback(
     async (network: string) => {
       // Destroy old session if exists
       if (sessionId) {
         try {
-          await fetch(`${API_BASE}/api/session/${sessionId}`, { method: 'DELETE' });
+          await authFetch(`${API_BASE}/api/session/${sessionId}`, { method: 'DELETE' });
         } catch {
           // Ignore cleanup errors
         }
       }
 
       try {
-        const res = await fetch(`${API_BASE}/api/session`, {
+        const res = await authFetch(`${API_BASE}/api/session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ agent_network: network }),
@@ -79,7 +84,7 @@ export function Header() {
         console.error('Failed to create session:', err);
       }
     },
-    [sessionId, setSessionId, setAgentNetwork, clearMessages, setWidgetSchema, setTheme, setSampleQueries]
+    [sessionId, authFetch, API_BASE, setSessionId, setAgentNetwork, clearMessages, setWidgetSchema, setTheme, setSampleQueries]
   );
 
   const handleSystemChange = (event: SelectChangeEvent<string>) => {
@@ -216,6 +221,15 @@ export function Header() {
           </IconButton>
         </Tooltip>
 
+        {/* Admin console toggle */}
+        {userRole === 'admin' && (
+          <Tooltip title={adminDrawerOpen ? 'Close admin console' : 'Admin console'}>
+            <IconButton onClick={toggleAdminDrawer} size="small">
+              <AdminPanelSettings sx={{ color: adminDrawerOpen ? '#3b82f6' : undefined }} />
+            </IconButton>
+          </Tooltip>
+        )}
+
         {/* Dark/Light toggle */}
         <IconButton data-tour="theme-toggle" onClick={toggleDarkMode} size="small">
           {darkMode ? (
@@ -224,6 +238,13 @@ export function Header() {
             <DarkMode sx={{ color: '#64748b' }} />
           )}
         </IconButton>
+
+        {/* User avatar */}
+        <UserButton
+          appearance={{
+            elements: { avatarBox: { width: 32, height: 32 } },
+          }}
+        />
       </Toolbar>
     </AppBar>
   );

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useCruseStore } from '@/store/cruseStore';
 import type { WidgetCardDefinition } from '@/types/widget';
 
@@ -15,6 +16,7 @@ export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
+  const { getToken } = useAuth();
 
   const sessionId = useCruseStore((s) => s.sessionId);
   const setIsConnected = useCruseStore((s) => s.setIsConnected);
@@ -100,8 +102,11 @@ export function useWebSocket() {
     ]
   );
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!sessionId) return;
+
+    const token = await getToken();
+    if (!token) return;
 
     // Clean up existing connection
     if (wsRef.current) {
@@ -109,7 +114,7 @@ export function useWebSocket() {
       wsRef.current = null;
     }
 
-    const ws = new WebSocket(`${WS_BASE_URL}/ws/chat/${sessionId}`);
+    const ws = new WebSocket(`${WS_BASE_URL}/ws/chat/${sessionId}?token=${encodeURIComponent(token)}`);
 
     ws.onopen = () => {
       setIsConnected(true);
@@ -147,7 +152,7 @@ export function useWebSocket() {
     };
 
     wsRef.current = ws;
-  }, [sessionId, handleEvent, setIsConnected, setConnectionError]);
+  }, [sessionId, getToken, handleEvent, setIsConnected, setConnectionError]);
 
   // Connect when sessionId changes
   useEffect(() => {

@@ -4,9 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Box, CircularProgress, Drawer, IconButton, Tooltip, Typography } from '@mui/material';
 import { Close, Refresh } from '@mui/icons-material';
 import { useCruseStore } from '@/store/cruseStore';
+import { useAuthenticatedFetch } from '@/utils/api';
 import { NetworkGraph } from '@/components/network/NetworkGraph';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 export function NetworkDrawer() {
   const open = useCruseStore((s) => s.networkDrawerOpen);
   const toggleDrawer = useCruseStore((s) => s.toggleNetworkDrawer);
@@ -16,6 +15,7 @@ export function NetworkDrawer() {
   const setConnectivityData = useCruseStore((s) => s.setConnectivityData);
   const setConnectivityLoading = useCruseStore((s) => s.setConnectivityLoading);
   const darkMode = useCruseStore((s) => s.darkMode);
+  const { authFetch, API_BASE } = useAuthenticatedFetch();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const fetchConnectivity = useCallback(async (network: string) => {
@@ -24,7 +24,7 @@ export function NetworkDrawer() {
     setErrorMsg(null);
     try {
       const url = `${API_BASE}/api/connectivity/${network}`;
-      const res = await fetch(url);
+      const res = await authFetch(url);
       if (!res.ok) {
         const detail = await res.text().catch(() => '');
         throw new Error(`HTTP ${res.status}: ${detail}`);
@@ -38,7 +38,7 @@ export function NetworkDrawer() {
     } finally {
       setConnectivityLoading(false);
     }
-  }, [setConnectivityData, setConnectivityLoading]);
+  }, [authFetch, API_BASE, setConnectivityData, setConnectivityLoading]);
 
   // Fetch when drawer opens or network changes
   useEffect(() => {
