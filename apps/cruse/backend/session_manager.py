@@ -39,13 +39,13 @@ CRUSE_AGENT_NETWORK_NAME = "experimental/cruse_agent"
 # Both RegistryManifestRestorer and DirectAgentSessionFactory parse
 # the full manifest (82+ HOCON files). Caching avoids repeated I/O.
 
-_systems_cache: list[str] | None = None
+_systems_cache: list[str] | None = None  # pylint: disable=invalid-name
 _systems_cache_lock = threading.Lock()
 
-_factory_cache: AgentSessionFactory | None = None
+_factory_cache: AgentSessionFactory | None = None  # pylint: disable=invalid-name
 _factory_cache_lock = threading.Lock()
 
-_direct_factory_cache: DirectAgentSessionFactory | None = None
+_direct_factory_cache: DirectAgentSessionFactory | None = None  # pylint: disable=invalid-name
 _direct_factory_cache_lock = threading.Lock()
 
 
@@ -395,10 +395,7 @@ class SessionManager:
 
     def list_sessions_for_user(self, user_id: str) -> list[dict]:
         """Return sessions belonging to a specific user."""
-        return [
-            info for info in self.list_sessions()
-            if info["user_id"] == user_id
-        ]
+        return [info for info in self.list_sessions() if info["user_id"] == user_id]
 
     def get_stats(self) -> dict:
         """Return usage statistics for the admin console."""
