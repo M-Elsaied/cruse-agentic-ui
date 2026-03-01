@@ -8,6 +8,7 @@ import { ChatPanel } from '@/components/chat/ChatPanel';
 import { InputBar } from '@/components/InputBar';
 import { WidgetCard } from '@/components/widget/WidgetCard';
 import { AgentActivityBar } from '@/components/activity/AgentActivityBar';
+import { AdminDrawer } from '@/components/admin/AdminDrawer';
 import { DebugDrawer } from '@/components/debug/DebugDrawer';
 import { NetworkDrawer } from '@/components/network/NetworkDrawer';
 import { BackgroundEngine } from '@/components/theme/BackgroundEngine';
@@ -114,6 +115,9 @@ export function CruseLayout() {
           <InputBar />
         </Box>
       </Box>
+
+      {/* Admin console drawer */}
+      <AdminDrawer />
 
       {/* Debug monitor drawer */}
       <DebugDrawer />
