@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
 import { Box } from '@mui/material';
 import { useCruseStore } from '@/store/cruseStore';
 import { useAuthenticatedFetch } from '@/utils/api';
@@ -14,28 +13,25 @@ export default function Home() {
   const setAvailableSystems = useCruseStore((s) => s.setAvailableSystems);
   const setUserRole = useCruseStore((s) => s.setUserRole);
   const { authFetch, API_BASE } = useAuthenticatedFetch();
-  const { user } = useUser();
   useSessionPersistence();
 
   useEffect(() => {
-    if (user) {
-      const role = (user.publicMetadata?.role as string) || 'user';
-      setUserRole(role as 'admin' | 'user');
-    }
-  }, [user, setUserRole]);
-
-  useEffect(() => {
-    const fetchSystems = async () => {
+    const fetchInit = async () => {
       try {
-        const res = await authFetch(`${API_BASE}/api/systems`);
-        const data = await res.json();
-        setAvailableSystems(data.systems || []);
+        const [systemsRes, meRes] = await Promise.all([
+          authFetch(`${API_BASE}/api/systems`),
+          authFetch(`${API_BASE}/api/me`),
+        ]);
+        const systemsData = await systemsRes.json();
+        setAvailableSystems(systemsData.systems || []);
+        const meData = await meRes.json();
+        setUserRole((meData.role === 'admin' ? 'admin' : 'user') as 'admin' | 'user');
       } catch (err) {
-        console.error('Failed to fetch systems:', err);
+        console.error('Failed to fetch init data:', err);
       }
     };
-    fetchSystems();
-  }, [authFetch, API_BASE, setAvailableSystems]);
+    fetchInit();
+  }, [authFetch, API_BASE, setAvailableSystems, setUserRole]);
 
   return (
     <ErrorBoundary>
