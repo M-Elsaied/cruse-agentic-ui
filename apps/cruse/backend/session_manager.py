@@ -256,9 +256,12 @@ class CruseSession:  # pylint: disable=too-many-instance-attributes
     first chat message arrives before init finishes, it blocks until ready.
     """
 
-    def __init__(self, session_id: str, agent_network: str):
+    def __init__(self, session_id: str, agent_network: str, user_id: str = "anonymous"):
         self.session_id = session_id
         self.agent_network = agent_network
+        self.user_id = user_id
+        self.created_at = time.time()
+        self.message_count = 0
         self.session = None
         self.state_info = None
         self._initialized = False
@@ -323,6 +326,7 @@ class CruseSession:  # pylint: disable=too-many-instance-attributes
             user_input,
             self.debug_processor,
         )
+        self.message_count += 1
         t_end = time.time()
         print(f"[TIMING] _cruse_chat took {t_end - t_init:.2f}s, total chat() {t_end - t_start:.2f}s", flush=True)
         return response
@@ -342,7 +346,7 @@ class SessionManager:
     def __init__(self):
         self._sessions: dict[str, CruseSession] = {}
 
-    def create_session(self, agent_network: str) -> str:
+    def create_session(self, agent_network: str, user_id: str = "anonymous") -> str:
         """Create a new session and return its ID.
 
         Immediately kicks off agent session initialization in a background
@@ -350,13 +354,14 @@ class SessionManager:
         WebSocket and the user starts typing.
 
         :param agent_network: The HOCON path of the agent network to connect to.
+        :param user_id: The authenticated user's ID.
         :return: The UUID session ID.
         """
         session_id = str(uuid.uuid4())
-        cruse_session = CruseSession(session_id, agent_network)
+        cruse_session = CruseSession(session_id, agent_network, user_id)
         self._sessions[session_id] = cruse_session
         cruse_session.start_eager_init()
-        logger.info("Created session %s for network %s (eager init started)", session_id, agent_network)
+        logger.info("Created session %s for network %s user %s", session_id, agent_network, user_id)
         return session_id
 
     def get_session(self, session_id: str) -> CruseSession | None:
@@ -376,9 +381,42 @@ class SessionManager:
         logger.info("Destroyed session %s", session_id)
         return True
 
-    def list_sessions(self) -> list[dict[str, str]]:
+    def list_sessions(self) -> list[dict]:
         """Return a list of active sessions."""
-        return [{"session_id": sid, "agent_network": s.agent_network} for sid, s in self._sessions.items()]
+        return [
+            {
+                "session_id": sid,
+                "agent_network": s.agent_network,
+                "user_id": s.user_id,
+                "created_at": s.created_at,
+            }
+            for sid, s in self._sessions.items()
+        ]
+
+    def list_sessions_for_user(self, user_id: str) -> list[dict]:
+        """Return sessions belonging to a specific user."""
+        return [
+            info for info in self.list_sessions()
+            if info["user_id"] == user_id
+        ]
+
+    def get_stats(self) -> dict:
+        """Return usage statistics for the admin console."""
+        sessions = list(self._sessions.values())
+        sessions_by_user: dict[str, int] = {}
+        sessions_by_network: dict[str, int] = {}
+        total_messages = 0
+        for s in sessions:
+            sessions_by_user[s.user_id] = sessions_by_user.get(s.user_id, 0) + 1
+            sessions_by_network[s.agent_network] = sessions_by_network.get(s.agent_network, 0) + 1
+            total_messages += s.message_count
+        return {
+            "total_sessions": len(sessions),
+            "active_sessions": len(sessions),
+            "total_messages": total_messages,
+            "sessions_by_user": sessions_by_user,
+            "sessions_by_network": sessions_by_network,
+        }
 
     @staticmethod
     def get_available_systems() -> list[str]:
