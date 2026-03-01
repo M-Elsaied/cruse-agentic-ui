@@ -29,7 +29,6 @@ from apps.cruse.backend.models import ChatMessage
 from apps.cruse.backend.models import ServerEventType
 from apps.cruse.backend.models import SessionCreate
 from apps.cruse.backend.session_manager import SessionManager
-from apps.cruse.backend.session_manager import get_connectivity_for_network
 from apps.cruse.backend.session_manager import get_cruse_connectivity
 from apps.cruse.backend.session_store import SessionTimeoutManager
 from apps.cruse.backend.streaming_bridge import process_chat_message

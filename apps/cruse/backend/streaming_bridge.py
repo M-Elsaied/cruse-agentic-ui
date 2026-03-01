@@ -76,7 +76,7 @@ async def process_chat_message(
         # Send periodic keepalive pings and drain debug queues every 2 seconds
         # to provide real-time visibility during long agent processing chains.
         t_bridge_start = time.time()
-        print(f"[TIMING] process_chat_message: dispatching to thread pool", flush=True)
+        print("[TIMING] process_chat_message: dispatching to thread pool", flush=True)
         chat_task = asyncio.ensure_future(asyncio.to_thread(cruse_session.chat, user_input))
 
         poll_count = 0
