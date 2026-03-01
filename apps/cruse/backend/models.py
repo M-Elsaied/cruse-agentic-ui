@@ -54,3 +54,21 @@ class ServerEvent(BaseModel):
 
     type: ServerEventType
     data: Any = None
+
+
+class UserInfo(BaseModel):
+    """Represents an authenticated user for API responses."""
+
+    user_id: str
+    email: str | None = None
+    role: str = "user"
+
+
+class AdminStats(BaseModel):
+    """Usage statistics for the admin console."""
+
+    total_sessions: int
+    active_sessions: int
+    total_messages: int
+    sessions_by_user: dict[str, int]
+    sessions_by_network: dict[str, int]
