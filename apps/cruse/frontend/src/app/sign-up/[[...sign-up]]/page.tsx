@@ -35,6 +35,8 @@ export default function SignUpPage() {
         </Typography>
       </Box>
       <SignUp
+        routing="path"
+        path="/sign-up"
         appearance={{
           elements: {
             rootBox: { width: '100%', maxWidth: 400 },

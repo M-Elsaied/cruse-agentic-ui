@@ -35,6 +35,8 @@ export default function SignInPage() {
         </Typography>
       </Box>
       <SignIn
+        routing="path"
+        path="/sign-in"
         appearance={{
           elements: {
             rootBox: { width: '100%', maxWidth: 400 },
