@@ -43,13 +43,14 @@ Network Graph — Interactive SVG topology
 2. [What Changed from Upstream](#what-changed-from-upstream)
 3. [Architecture](#architecture)
 4. [Getting Started](#getting-started)
-5. [Backend Deep Dive](#backend-deep-dive)
-6. [Frontend Deep Dive](#frontend-deep-dive)
-7. [WebSocket Protocol](#websocket-protocol)
-8. [Widget System](#widget-system)
-9. [Agent Network Visualization](#agent-network-visualization)
-10. [Project Structure](#project-structure)
-11. [Future Improvements](#future-improvements)
+5. [Authentication](#authentication)
+6. [Backend Deep Dive](#backend-deep-dive)
+7. [Frontend Deep Dive](#frontend-deep-dive)
+8. [WebSocket Protocol](#websocket-protocol)
+9. [Widget System](#widget-system)
+10. [Agent Network Visualization](#agent-network-visualization)
+11. [Project Structure](#project-structure)
+12. [Future Improvements](#future-improvements)
 
 ---
 
@@ -232,6 +233,18 @@ docker-compose up --build
 ```
 
 Backend on `http://localhost:5001`, frontend on `http://localhost:3000`.
+
+---
+
+## Authentication
+
+CRUSE uses [Clerk](https://clerk.com) for authentication with JWT-based
+session tokens. Features include social login (Google, GitHub), role-based
+access control, and an admin console for monitoring sessions and usage.
+
+For the full setup guide — creating a Clerk app, configuring session tokens,
+setting environment variables, and assigning admin roles — see
+[docs/authentication.md](docs/authentication.md).
 
 ---
 
