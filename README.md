@@ -1,9 +1,9 @@
+# CRUSE Agentic UI
+
 <!-- pyml disable-next-line no-inline-html -->
 <div align="center">
 
-# CRUSE Agentic UI
-
-**Context Reactive User Experience — The UI Itself Is an Agent**
+## Context Reactive User Experience — The UI Itself Is an Agent
 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776ab?logo=python&logoColor=white)](https://python.org)
 [![Next.js 14](https://img.shields.io/badge/Next.js-14-000000?logo=next.js&logoColor=white)](https://nextjs.org)
@@ -12,22 +12,26 @@
 [![Neuro SAN](https://img.shields.io/badge/Neuro_SAN-0.6.35-ff6f00)](https://github.com/cognizant-ai-lab/neuro-san)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-An agentic frontend for [Neuro SAN](https://github.com/cognizant-ai-lab/neuro-san) multi-agent networks — with dynamic AI-generated widgets, real-time agent tracing, and interactive network visualization.
+An agentic frontend for [Neuro SAN](https://github.com/cognizant-ai-lab/neuro-san)
+multi-agent networks — with dynamic AI-generated widgets, real-time agent tracing,
+and interactive network visualization.
 
 </div>
 
 ---
 
-### Demo
+## Demo
 
-https://github.com/user-attachments/assets/8cf88c66-c8c4-42dd-972b-df086c228ab9
+<https://github.com/user-attachments/assets/8cf88c66-c8c4-42dd-972b-df086c228ab9>
 
 ---
 
 <!-- pyml disable-next-line no-inline-html -->
 <div align="center">
 
-**Dynamic Widgets** — AI generates forms on the fly | **Live Tracing** — Watch agents communicate in real time | **Network Graph** — Interactive SVG topology
+Dynamic Widgets — AI generates forms on the fly |
+Live Tracing — Watch agents communicate in real time |
+Network Graph — Interactive SVG topology
 
 </div>
 
@@ -72,19 +76,19 @@ The original Flask implementation remains intact for backward compatibility.
 
 ## What Changed from Upstream
 
-### Agent Brain: 2 Agents → 4 Agents
+### Agent Brain: 2 Agents to 4 Agents
 
 The most significant change is the redesign of `registries/experimental/cruse_agent.hocon`.
 
 **Before** — the front-man LLM did everything (domain answers + HTML form generation):
 
-```
+```text
 cruse (front-man LLM) ──→ domain_expert (coded tool)
 ```
 
 **After** — separated into distinct responsibilities:
 
-```
+```text
 cruse (front-man LLM)
   ├──→ domain_expert (coded tool / CallAgent)
   │       └──→ target agent network (AAOSA protocol)
@@ -94,10 +98,10 @@ cruse (front-man LLM)
 
 | Agent | Type | Role |
 |-------|------|------|
-| `cruse` | LLM (front-man) | Orchestrates a 3-step protocol: call domain_expert, call widget_generator, format response |
-| `domain_expert` | Coded Tool | Delegates to the user-selected agent network via AAOSA (unchanged) |
-| `widget_generator` | **NEW** LLM Agent | Analyzes conversation context, decides whether to generate a JSON Schema widget or skip (`{"display": false}`) |
-| `template_provider` | **NEW** Coded Tool | 345-line Python tool supplying JSON Schema templates, 12 field-type examples, and 100+ curated Material Design icons |
+| `cruse` | LLM (front-man) | Orchestrates a 3-step protocol |
+| `domain_expert` | Coded Tool | Delegates to the user-selected agent network via AAOSA |
+| `widget_generator` | **NEW** LLM Agent | Analyzes context, decides whether to generate a JSON Schema widget |
+| `template_provider` | **NEW** Coded Tool | 345-line Python tool supplying JSON Schema templates |
 
 ### HOCON Comparison
 
@@ -110,14 +114,14 @@ cruse (front-man LLM)
 | Field types | Whatever HTML the LLM invents | 12 typed fields with validation |
 | Icons / colors | None | Material Design Icons + hex colors per widget |
 
-### New Coded Tool: `WidgetTemplateProvider`
+### New Coded Tool: WidgetTemplateProvider
 
 `coded_tools/experimental/cruse_agent/widget_template_provider.py` — does not exist upstream.
 
 | Feature | Description |
 |---------|-------------|
 | `WIDGET_SCHEMA_TEMPLATE` | Base JSON Schema with placeholder fields for the LLM to fill |
-| `WIDGET_TYPE_EXAMPLES` | 12 field patterns (text, textarea, number, select, date, slider, rating, file upload, etc.) |
+| `WIDGET_TYPE_EXAMPLES` | 12 field patterns (text, textarea, number, select, date, slider, etc.) |
 | `ICON_GUIDANCE` | 17 categories with 100+ Material Design icon names + selection principles |
 
 ### Manifest Changes
@@ -127,7 +131,7 @@ cruse (front-man LLM)
 | `registries/experimental/manifest.hocon` | `cruse_agent.hocon: false` → `true` |
 | `registries/manifest.hocon` | Added CRUSE agent entries (`public: false` — orchestrator only) |
 
-### New Backend + Frontend
+### New Backend and Frontend
 
 67 new files across `apps/cruse/backend/` (FastAPI) and `apps/cruse/frontend/` (Next.js).
 See [Backend Deep Dive](#backend-deep-dive) and [Frontend Deep Dive](#frontend-deep-dive)
@@ -137,7 +141,7 @@ for details.
 
 ## Architecture
 
-```
+```text
  +------------------------------------------------------------------+
  |                                                                    |
  |   Browser (Next.js 14)          FastAPI Backend                    |
@@ -233,7 +237,7 @@ Backend on `http://localhost:5001`, frontend on `http://localhost:3000`.
 
 ## Backend Deep Dive
 
-### Components
+### Backend Components
 
 | File | Purpose |
 |------|---------|
@@ -249,7 +253,7 @@ Backend on `http://localhost:5001`, frontend on `http://localhost:3000`.
 
 ### Session Lifecycle
 
-```
+```text
 POST /api/session {agent_network: "basic/hello_world"}
   → SessionManager creates CruseSession
   → Eager init starts in background thread (~13s)
@@ -276,10 +280,10 @@ _direct_factory_cache # DirectAgentSessionFactory (connectivity queries)
 
 ## Frontend Deep Dive
 
-### Components
+### Frontend Components
 
-| Component | File(s) | Purpose |
-|-----------|---------|---------|
+| Component | Files | Purpose |
+|-----------|-------|---------|
 | Layout | `CruseLayout.tsx` | Flex layout — widget panel (420px) + chat + drawers |
 | Header | `Header.tsx` | Network selector, new chat, dark mode, drawer toggles |
 | Chat | `chat/ChatPanel.tsx`, `MessageBubble.tsx` | Markdown-rendered messages with streaming |
@@ -343,7 +347,7 @@ using `@rjsf/mui`. Example:
       "departure": {"type": "string", "title": "Departure City"},
       "destination": {"type": "string", "title": "Destination", "enum": ["LAX", "SFO", "ORD"]},
       "date": {"type": "string", "format": "date", "title": "Travel Date"},
-      "passengers": {"type": "integer", "minimum": 1, "maximum": 9, "x-ui": {"widget": "slider"}}
+      "passengers": {"type": "integer", "minimum": 1, "maximum": 9}
     },
     "required": ["departure", "destination", "date"]
   }
@@ -398,7 +402,7 @@ When agents communicate during a chat:
 
 ## Project Structure
 
-```
+```text
 apps/cruse/
 ├── interface_flask.py          # Original Flask app (preserved)
 ├── cruse_assistant.py          # Original agent logic (reused)
@@ -445,33 +449,39 @@ registries/experimental/
 ## Future Improvements
 
 ### Agentic Improvements
-- **Conversation memory** — persist agent context across sessions so returning users don't start from scratch
-- **Widget learning** — track which fields users fill vs skip, feed usage patterns back to `widget_generator` to produce better forms over turn
-- **Multi-modal input** — support image and voice attachments through the widget system (camera capture, voice-to-text fields)
-- **Agent self-correction** — when JSON Schema parsing fails, automatically retry with `template_provider` examples as few-shot guidance
-- **Multi-turn widgets** — let `widget_generator` produce follow-up forms that refine based on previous submissions (wizard pattern driven by agent intelligence, not hardcoded UI steps)
+
+- **Conversation memory** — persist agent context across sessions
+- **Widget learning** — track which fields users fill vs skip
+- **Multi-modal input** — support image and voice attachments
+- **Agent self-correction** — retry with template examples on parse failure
+- **Multi-turn widgets** — follow-up forms that refine based on previous submissions
 
 ### Performance
+
 - **Session pooling** — pre-create sessions for popular networks
 - **Response streaming** — true token-level streaming via `chat_token` events
 - **Connectivity caching** — cache merged topology per network
 
-### Widget System
+### Widget Enhancements
+
 - **Conditional fields** — JSON Schema `if/then/else` support
 - **Multi-step wizards** — paginated form navigation
 - **Rich field types** — color pickers, time pickers, currency inputs
 
 ### Personalization
+
 - **User profiles** — persist preferences and conversation history
 - **Favorite networks** — pin frequently-used networks
 - **Custom themes** — user-created background themes
 
 ### Cloud Deployment
+
 - **Kubernetes** — Helm chart with auto-scaling on session count
 - **Sticky sessions** — ALB/NLB with WebSocket affinity
 - **Secrets management** — AWS Secrets Manager / Vault
 
-### Visualization
+### Visualization Enhancements
+
 - **Zoom and pan** — mouse wheel zoom for large networks
 - **Replay mode** — record and replay trace events
 - **Performance badges** — per-agent response times on nodes

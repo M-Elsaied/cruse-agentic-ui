@@ -55,7 +55,7 @@ def _get_cached_direct_factory() -> DirectAgentSessionFactory:
     Used for operations that need direct access to AgentNetwork objects
     (e.g. connectivity reporting) without creating a full session.
     """
-    global _direct_factory_cache
+    global _direct_factory_cache  # pylint: disable=global-statement
     if _direct_factory_cache is None:
         with _direct_factory_cache_lock:
             if _direct_factory_cache is None:
@@ -71,7 +71,7 @@ def _get_cached_factory() -> AgentSessionFactory:
     DirectAgentSessionFactory.__init__() runs RegistryManifestRestorer
     which parses every HOCON in the manifest. We only need to do this once.
     """
-    global _factory_cache
+    global _factory_cache  # pylint: disable=global-statement
     if _factory_cache is None:
         with _factory_cache_lock:
             if _factory_cache is None:
@@ -104,7 +104,7 @@ def get_connectivity_for_network(agent_network_name: str) -> dict:
         config = agent_network.get_config()
         if "metadata" in config:
             metadata = config["metadata"]
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         logger.debug("Could not extract metadata for %s", agent_network_name)
 
     return {
@@ -166,7 +166,7 @@ def get_cruse_connectivity(target_network_name: str) -> dict:
         config = target_network.get_config()
         if "metadata" in config:
             metadata = config["metadata"]
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         logger.debug("Could not extract metadata for %s", target_network_name)
 
     return {
@@ -248,7 +248,7 @@ def _cruse_chat(session, state_info, user_input: str, debug_processor: DebugMess
     return last_chat_response, state_info
 
 
-class CruseSession:
+class CruseSession:  # pylint: disable=too-many-instance-attributes
     """Holds state for a single CRUSE chat session.
 
     Uses eager background initialization: the expensive agent session starts
@@ -286,7 +286,7 @@ class CruseSession:
                 self.session, self.state_info = _create_cruse_session(self.agent_network)
                 self._initialized = True
                 print(f"[TIMING] Eager init complete for {self.agent_network} in {time.time() - t0:.2f}s", flush=True)
-            except Exception as exc:
+            except Exception as exc:  # pylint: disable=broad-exception-caught
                 self._init_error = exc
                 print(f"[TIMING] Eager init FAILED for {self.agent_network}: {exc}", flush=True)
                 logger.exception("Eager init failed for %s", self.agent_network)
@@ -318,7 +318,10 @@ class CruseSession:
         t_init = time.time()
         print(f"[TIMING] _ensure_initialized took {t_init - t_start:.2f}s", flush=True)
         response, self.state_info = _cruse_chat(
-            self.session, self.state_info, user_input, self.debug_processor,
+            self.session,
+            self.state_info,
+            user_input,
+            self.debug_processor,
         )
         t_end = time.time()
         print(f"[TIMING] _cruse_chat took {t_end - t_init:.2f}s, total chat() {t_end - t_start:.2f}s", flush=True)
@@ -329,7 +332,7 @@ class CruseSession:
         if self.session is not None:
             try:
                 tear_down_cruse_assistant(self.session)
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 logger.exception("Error tearing down session %s", self.session_id)
 
 
@@ -375,10 +378,7 @@ class SessionManager:
 
     def list_sessions(self) -> list[dict[str, str]]:
         """Return a list of active sessions."""
-        return [
-            {"session_id": sid, "agent_network": s.agent_network}
-            for sid, s in self._sessions.items()
-        ]
+        return [{"session_id": sid, "agent_network": s.agent_network} for sid, s in self._sessions.items()]
 
     @staticmethod
     def get_available_systems() -> list[str]:
@@ -392,7 +392,7 @@ class SessionManager:
         change at runtime. This avoids re-parsing 82+ HOCON files on every
         page refresh.
         """
-        global _systems_cache
+        global _systems_cache  # pylint: disable=global-statement
         if _systems_cache is not None:
             return _systems_cache
 
@@ -411,9 +411,6 @@ class SessionManager:
 
             # "public" storage contains networks marked as public in the manifest
             public_networks = manifest_networks.get("public", {})
-            _systems_cache = [
-                name for name in sorted(public_networks.keys())
-                if name not in excluded
-            ]
+            _systems_cache = [name for name in sorted(public_networks.keys()) if name not in excluded]
             logger.info("Found %d available systems.", len(_systems_cache))
             return _systems_cache

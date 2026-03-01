@@ -51,7 +51,7 @@ def try_parse_json(content: str) -> Any:
     return None
 
 
-def parse_response_blocks(response: str) -> list[tuple[str, Any]]:
+def parse_response_blocks(response: str) -> list[tuple[str, Any]]:  # pylint: disable=too-many-branches
     """Parse a multiline response string into structured content blocks.
 
     Enhanced version of the original cruse_assistant.parse_response_blocks()

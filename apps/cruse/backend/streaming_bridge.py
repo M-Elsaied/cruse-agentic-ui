@@ -76,7 +76,7 @@ async def process_chat_message(
         # Send periodic keepalive pings and drain debug queues every 2 seconds
         # to provide real-time visibility during long agent processing chains.
         t_bridge_start = time.time()
-        print(f"[TIMING] process_chat_message: dispatching to thread pool", flush=True)
+        print("[TIMING] process_chat_message: dispatching to thread pool", flush=True)
         chat_task = asyncio.ensure_future(asyncio.to_thread(cruse_session.chat, user_input))
 
         poll_count = 0
@@ -116,7 +116,7 @@ async def process_chat_message(
                 # Legacy HTML fallback - send as widget with raw HTML marker
                 await send_event(websocket, ServerEventType.WIDGET_SCHEMA, {"_html": content})
 
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         logger.exception("Error processing chat message")
         await send_event(websocket, ServerEventType.ERROR, {"message": "An error occurred processing your message"})
 

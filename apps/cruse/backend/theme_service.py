@@ -85,7 +85,7 @@ def _read_agent_metadata(agent_network: str) -> dict[str, Any] | None:
         result = dict(metadata) if metadata else None
         _metadata_cache[agent_network] = result
         return result
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         logger.exception("Failed to read metadata from %s", hocon_path)
         _metadata_cache[agent_network] = None
         return None
