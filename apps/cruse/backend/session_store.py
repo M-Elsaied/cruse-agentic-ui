@@ -59,10 +59,7 @@ class SessionTimeoutManager:
         while True:
             await asyncio.sleep(60)  # Check every minute
             now = time.time()
-            expired = [
-                sid for sid, last in self._last_activity.items()
-                if now - last > self._timeout
-            ]
+            expired = [sid for sid, last in self._last_activity.items() if now - last > self._timeout]
             for sid in expired:
                 logger.info("Session %s timed out after %ds of inactivity", sid, self._timeout)
                 self._session_manager.destroy_session(sid)

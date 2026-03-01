@@ -318,7 +318,10 @@ class CruseSession:
         t_init = time.time()
         print(f"[TIMING] _ensure_initialized took {t_init - t_start:.2f}s", flush=True)
         response, self.state_info = _cruse_chat(
-            self.session, self.state_info, user_input, self.debug_processor,
+            self.session,
+            self.state_info,
+            user_input,
+            self.debug_processor,
         )
         t_end = time.time()
         print(f"[TIMING] _cruse_chat took {t_end - t_init:.2f}s, total chat() {t_end - t_start:.2f}s", flush=True)
@@ -375,10 +378,7 @@ class SessionManager:
 
     def list_sessions(self) -> list[dict[str, str]]:
         """Return a list of active sessions."""
-        return [
-            {"session_id": sid, "agent_network": s.agent_network}
-            for sid, s in self._sessions.items()
-        ]
+        return [{"session_id": sid, "agent_network": s.agent_network} for sid, s in self._sessions.items()]
 
     @staticmethod
     def get_available_systems() -> list[str]:
@@ -411,9 +411,6 @@ class SessionManager:
 
             # "public" storage contains networks marked as public in the manifest
             public_networks = manifest_networks.get("public", {})
-            _systems_cache = [
-                name for name in sorted(public_networks.keys())
-                if name not in excluded
-            ]
+            _systems_cache = [name for name in sorted(public_networks.keys()) if name not in excluded]
             logger.info("Found %d available systems.", len(_systems_cache))
             return _systems_cache

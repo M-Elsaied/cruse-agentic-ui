@@ -210,6 +210,7 @@ async def startup():
         session_manager.get_available_systems()
         from apps.cruse.backend.session_manager import _get_cached_direct_factory
         from apps.cruse.backend.session_manager import _get_cached_factory
+
         _get_cached_factory()
         _get_cached_direct_factory()
         logger.info("Caches warmed.")
