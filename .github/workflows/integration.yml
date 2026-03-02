@@ -49,14 +49,3 @@ jobs:
           AGENT_TOOL_PATH: "coded_tools/"
           AGENT_MANIFEST_FILE: "registries/manifest.hocon"
           AGENT_TEMPORARY_NETWORK_UPDATE_PERIOD_SECONDS: 5
-
-      - name: Notify Slack on failure
-        if: ${{ failure() && secrets.SLACK_WEBHOOK_URL != '' }}
-        uses: slackapi/slack-github-action@v1.24.0
-        with:
-          payload: |
-            {
-              "text": "❌ Integration failed for `${{ github.repository }}` on `${{ github.ref_name }}`"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
