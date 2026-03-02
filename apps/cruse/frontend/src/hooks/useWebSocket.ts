@@ -48,12 +48,12 @@ export function useWebSocket() {
           break;
 
         case 'widget_schema': {
-          const schema = event.data as WidgetCardDefinition;
+          const raw = event.data as Record<string, unknown>;
           // Check for display:false (agent says no widget needed)
-          if (schema && (schema as Record<string, unknown>).display === false) {
+          if (raw && raw.display === false) {
             setWidgetSchema(null);
           } else {
-            setWidgetSchema(schema);
+            setWidgetSchema(raw as unknown as WidgetCardDefinition);
           }
           break;
         }
