@@ -2,7 +2,8 @@
 
 import { useCallback, useMemo } from 'react';
 import Form from '@rjsf/mui';
-import type { RJSFSchema, UiSchema, RegistryWidgetsType, IChangeEvent, ObjectFieldTemplateProps } from '@rjsf/utils';
+import type { RJSFSchema, UiSchema, RegistryWidgetsType, ObjectFieldTemplateProps } from '@rjsf/utils';
+import type { IChangeEvent } from '@rjsf/core';
 import validator from '@rjsf/validator-ajv8';
 import { motion } from 'framer-motion';
 import { SliderField } from '@/components/widget/fields/SliderField';
