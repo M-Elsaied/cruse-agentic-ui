@@ -51,7 +51,7 @@ jobs:
           AGENT_TEMPORARY_NETWORK_UPDATE_PERIOD_SECONDS: 5
 
       - name: Notify Slack on failure
-        if: failure()
+        if: failure() && secrets.SLACK_WEBHOOK_URL != ''
         uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
