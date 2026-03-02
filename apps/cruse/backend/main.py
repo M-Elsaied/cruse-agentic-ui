@@ -83,6 +83,12 @@ log_buffer = LogRingBuffer(maxlen=500)
 # ─── REST Endpoints ──────────────────────────────────────────────
 
 
+@app.get("/api/health")
+async def health_check():
+    """Unauthenticated health check for load balancers and Docker."""
+    return {"status": "healthy"}
+
+
 @app.get("/api/systems")
 async def list_systems(_user: ClerkUser = Depends(get_current_user)):
     """Return the list of available agent networks."""
