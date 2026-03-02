@@ -1,0 +1,15 @@
+.git
+.github
+.claude
+venv
+__pycache__
+*.pyc
+node_modules
+.next
+apps/cruse/frontend/node_modules
+apps/cruse/frontend/.next
+deploy
+docs
+tests
+*.md
+.env*
