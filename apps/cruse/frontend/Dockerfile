@@ -19,7 +19,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+RUN mkdir -p public && npm run build
 
 FROM node:20-alpine AS runner
 
