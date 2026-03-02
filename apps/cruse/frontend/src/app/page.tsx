@@ -1,13 +1,18 @@
 'use client';
 
 import { useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Box } from '@mui/material';
 import { useCruseStore } from '@/store/cruseStore';
 import { useAuthenticatedFetch } from '@/utils/api';
-import { CruseLayout } from '@/components/CruseLayout';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ConnectionStatus } from '@/components/common/ConnectionStatus';
 import { useSessionPersistence } from '@/hooks/useSessionPersistence';
+
+// Dynamic import to skip SSR — the app is fully client-rendered
+const CruseLayout = dynamic(() => import('@/components/CruseLayout').then((m) => m.CruseLayout), {
+  ssr: false,
+});
 
 export default function Home() {
   const setAvailableSystems = useCruseStore((s) => s.setAvailableSystems);
