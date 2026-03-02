@@ -10,8 +10,9 @@ COPY requirements.txt ./requirements-main.txt
 COPY requirements-build.txt ./requirements-build.txt
 COPY apps/cruse/backend/requirements.txt ./requirements-cruse.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir \
+# Install Python dependencies (setuptools needed for timeout-decorator build)
+RUN pip install --no-cache-dir setuptools && \
+    pip install --no-cache-dir \
     -r requirements-main.txt \
     -r requirements-build.txt \
     -r requirements-cruse.txt
