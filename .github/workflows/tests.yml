@@ -78,7 +78,7 @@ jobs:
           python -m readme_renderer README.md
 
       - name: Notify Slack on success
-        if: success() && steps.fork_check.outputs.is_fork == 'false' && secrets.SLACK_WEBHOOK_URL != ''
+        if: ${{ success() && steps.fork_check.outputs.is_fork == 'false' && secrets.SLACK_WEBHOOK_URL != '' }}
         uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
@@ -89,7 +89,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Notify Slack on failure
-        if: failure() && steps.fork_check.outputs.is_fork == 'false' && secrets.SLACK_WEBHOOK_URL != ''
+        if: ${{ failure() && steps.fork_check.outputs.is_fork == 'false' && secrets.SLACK_WEBHOOK_URL != '' }}
         uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
