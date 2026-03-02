@@ -16,11 +16,12 @@ services:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
       - CLERK_ISSUER_URL=${CLERK_ISSUER_URL:-}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001}
     volumes:
       - ../../registries:/app/registries:ro
       - ../../coded_tools:/app/coded_tools:ro
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/api/systems"]
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
