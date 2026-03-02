@@ -1,0 +1,45 @@
+name: Deploy CRUSE
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to deploy"
+        required: false
+        default: "main"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.CRUSE_EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.CRUSE_EC2_SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            cd /opt/cruse
+            git fetch origin
+            git checkout ${{ github.event.inputs.branch }}
+            git pull origin ${{ github.event.inputs.branch }}
+
+            cd deploy/cruse
+            docker compose -f docker-compose.prod.yml up -d --build
+
+            echo "Waiting for health check..."
+            sleep 10
+            curl -f http://localhost/api/health || echo "Health check failed"
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.CRUSE_EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.CRUSE_EC2_SSH_KEY }}
+          script: |
+            cd /opt/cruse/deploy/cruse
+            docker compose -f docker-compose.prod.yml ps
