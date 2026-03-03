@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Box, Drawer, Fab, useMediaQuery, useTheme } from '@mui/material';
 import { Widgets as WidgetsIcon } from '@mui/icons-material';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -15,6 +15,7 @@ import { DebugDrawer } from '@/components/debug/DebugDrawer';
 import { NetworkDrawer } from '@/components/network/NetworkDrawer';
 import { BackgroundEngine } from '@/components/theme/BackgroundEngine';
 import { SpotlightTour } from '@/components/tour/SpotlightTour';
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 export function CruseLayout() {
   const muiTheme = useTheme();
@@ -23,8 +24,19 @@ export function CruseLayout() {
   const darkMode = useCruseStore((s) => s.darkMode);
   const widgetDrawerOpen = useCruseStore((s) => s.widgetDrawerOpen);
   const setWidgetDrawerOpen = useCruseStore((s) => s.setWidgetDrawerOpen);
+  const widgetFormData = useCruseStore((s) => s.widgetFormData);
+  const setWidgetSubmitted = useCruseStore((s) => s.setWidgetSubmitted);
+  const { sendMessage } = useWebSocket();
   const hasWidget = widgetSchema !== null;
   const widgetColor = widgetSchema && !('_html' in widgetSchema) ? (widgetSchema.color || '#3b82f6') : null;
+
+  const handleMobileSubmit = useCallback(() => {
+    if (Object.keys(widgetFormData).length > 0) {
+      sendMessage('<form submitted>', widgetFormData);
+      setWidgetSubmitted(true);
+      setWidgetDrawerOpen(false);
+    }
+  }, [widgetFormData, sendMessage, setWidgetSubmitted, setWidgetDrawerOpen]);
 
   // Auto-open widget drawer on mobile when a new widget arrives
   useEffect(() => {
@@ -147,7 +159,7 @@ export function CruseLayout() {
           }}
         >
           <Box sx={{ p: 0 }}>
-            <WidgetCard />
+            <WidgetCard onSubmit={handleMobileSubmit} />
           </Box>
         </Drawer>
       )}
