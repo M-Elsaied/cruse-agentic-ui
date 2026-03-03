@@ -44,6 +44,7 @@ export default function Home() {
 function AuthenticatedHome() {
   const setAvailableSystems = useCruseStore((s) => s.setAvailableSystems);
   const setUserRole = useCruseStore((s) => s.setUserRole);
+  const setRateLimit = useCruseStore((s) => s.setRateLimit);
   const { authFetch, API_BASE } = useAuthenticatedFetch();
   useSessionPersistence();
 
@@ -58,12 +59,15 @@ function AuthenticatedHome() {
         setAvailableSystems(systemsData.systems || []);
         const meData = await meRes.json();
         setUserRole((meData.role === 'admin' ? 'admin' : 'user') as 'admin' | 'user');
+        if (meData.rate_limit) {
+          setRateLimit(meData.rate_limit.remaining, meData.rate_limit.limit);
+        }
       } catch (err) {
         console.error('Failed to fetch init data:', err);
       }
     };
     fetchInit();
-  }, [authFetch, API_BASE, setAvailableSystems, setUserRole]);
+  }, [authFetch, API_BASE, setAvailableSystems, setUserRole, setRateLimit]);
 
   return (
     <ErrorBoundary>

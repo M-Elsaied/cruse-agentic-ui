@@ -33,6 +33,9 @@ export function InputBar() {
   const pendingInput = useCruseStore((s) => s.pendingInput);
   const setPendingInput = useCruseStore((s) => s.setPendingInput);
   const setWidgetSubmitted = useCruseStore((s) => s.setWidgetSubmitted);
+  const rateLimitRemaining = useCruseStore((s) => s.rateLimitRemaining);
+  const rateLimitTotal = useCruseStore((s) => s.rateLimitTotal);
+  const rateLimitExceeded = useCruseStore((s) => s.rateLimitExceeded);
   const { sendMessage } = useWebSocket();
 
   // Handle pending input from sample query chips
@@ -103,6 +106,19 @@ export function InputBar() {
       }}
     >
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+        {rateLimitRemaining !== null && rateLimitTotal !== null && (
+          <Chip
+            label={
+              rateLimitRemaining <= 0
+                ? 'No requests left today. Resets at midnight UTC.'
+                : `${rateLimitRemaining} request${rateLimitRemaining === 1 ? '' : 's'} left today`
+            }
+            size="small"
+            color={rateLimitRemaining <= 5 ? 'warning' : 'default'}
+            variant="outlined"
+            sx={{ alignSelf: 'flex-start' }}
+          />
+        )}
         {hasFormData && (
           <Chip
             icon={<FormIcon />}
@@ -122,16 +138,18 @@ export function InputBar() {
           multiline
           maxRows={4}
           placeholder={
-            sessionId
-              ? hasFormData
-                ? 'Add a message (optional) and press Send to submit the form...'
-                : 'Type your message...'
-              : 'Select an agent network first'
+            rateLimitExceeded
+              ? 'Daily request limit reached. Please try again tomorrow.'
+              : sessionId
+                ? hasFormData
+                  ? 'Add a message (optional) and press Send to submit the form...'
+                  : 'Type your message...'
+                : 'Select an agent network first'
           }
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={!sessionId || isStreaming}
+          disabled={!sessionId || isStreaming || rateLimitExceeded}
           sx={{
             '& .MuiOutlinedInput-root': {
               borderRadius: 3,
@@ -142,7 +160,7 @@ export function InputBar() {
       <IconButton
         color="primary"
         onClick={handleSend}
-        disabled={(!input.trim() && !hasFormData) || isStreaming || !sessionId}
+        disabled={(!input.trim() && !hasFormData) || isStreaming || !sessionId || rateLimitExceeded}
         sx={{
           bgcolor: 'primary.main',
           color: 'white',
