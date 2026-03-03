@@ -2,19 +2,46 @@
 
 import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { Box } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
+import { useAuth } from '@clerk/nextjs';
 import { useCruseStore } from '@/store/cruseStore';
 import { useAuthenticatedFetch } from '@/utils/api';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ConnectionStatus } from '@/components/common/ConnectionStatus';
 import { useSessionPersistence } from '@/hooks/useSessionPersistence';
+import { LandingPage } from '@/components/landing/LandingPage';
 
-// Dynamic import to skip SSR — the app is fully client-rendered
 const CruseLayout = dynamic(() => import('@/components/CruseLayout').then((m) => m.CruseLayout), {
   ssr: false,
 });
 
 export default function Home() {
+  const { isSignedIn, isLoaded } = useAuth();
+
+  if (!isLoaded) {
+    return (
+      <Box
+        sx={{
+          height: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: '#0f172a',
+        }}
+      >
+        <CircularProgress sx={{ color: '#3b82f6' }} />
+      </Box>
+    );
+  }
+
+  if (!isSignedIn) {
+    return <LandingPage />;
+  }
+
+  return <AuthenticatedHome />;
+}
+
+function AuthenticatedHome() {
   const setAvailableSystems = useCruseStore((s) => s.setAvailableSystems);
   const setUserRole = useCruseStore((s) => s.setUserRole);
   const { authFetch, API_BASE } = useAuthenticatedFetch();
