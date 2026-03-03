@@ -58,6 +58,11 @@ interface CruseState {
   userRole: 'admin' | 'user' | null;
   adminDrawerOpen: boolean;
 
+  // Rate limiting
+  rateLimitRemaining: number | null;
+  rateLimitTotal: number | null;
+  rateLimitExceeded: boolean;
+
   // UI
   darkMode: boolean;
   pendingInput: string | null;
@@ -99,6 +104,8 @@ interface CruseState {
   setConnectivityLoading: (loading: boolean) => void;
   toggleWidgetDrawer: () => void;
   setWidgetDrawerOpen: (open: boolean) => void;
+  setRateLimit: (remaining: number | null, limit: number | null) => void;
+  setRateLimitExceeded: (exceeded: boolean) => void;
   setTourStep: (step: number) => void;
   endTour: () => void;
   reset: () => void;
@@ -128,6 +135,9 @@ const initialState = {
   networkDrawerOpen: false,
   connectivityData: null,
   connectivityLoading: false,
+  rateLimitRemaining: null,
+  rateLimitTotal: null,
+  rateLimitExceeded: false,
   darkMode: true,
   pendingInput: null,
   widgetSubmitted: false,
@@ -197,6 +207,9 @@ export const useCruseStore = create<CruseState>((set) => ({
     set((state) => ({ widgetDrawerOpen: !state.widgetDrawerOpen })),
   setWidgetDrawerOpen: (open) => set({ widgetDrawerOpen: open }),
 
+  setRateLimit: (remaining, limit) => set({ rateLimitRemaining: remaining, rateLimitTotal: limit }),
+  setRateLimitExceeded: (exceeded) => set({ rateLimitExceeded: exceeded }),
+
   setTourStep: (step) => set({ tourStep: step }),
   endTour: () => set({ tourActive: false, tourStep: 0 }),
 
@@ -209,5 +222,8 @@ export const useCruseStore = create<CruseState>((set) => ({
       userRole: useCruseStore.getState().userRole,
       adminDrawerOpen: useCruseStore.getState().adminDrawerOpen,
       networkDrawerOpen: useCruseStore.getState().networkDrawerOpen,
+      rateLimitRemaining: useCruseStore.getState().rateLimitRemaining,
+      rateLimitTotal: useCruseStore.getState().rateLimitTotal,
+      rateLimitExceeded: useCruseStore.getState().rateLimitExceeded,
     }),
 }));
