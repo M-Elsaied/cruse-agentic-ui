@@ -94,7 +94,7 @@ export function InputBar() {
     <Box
       data-tour="input-bar"
       sx={{
-        p: 2,
+        p: { xs: 1, md: 2 },
         borderTop: '1px solid',
         borderColor: 'divider',
         display: 'flex',
