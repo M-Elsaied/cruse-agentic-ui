@@ -31,7 +31,7 @@ const features = [
   },
 ];
 
-function FloatingOrbs({ darkMode }: { darkMode: boolean }) {
+export function FloatingOrbs({ darkMode }: { darkMode: boolean }) {
   return (
     <>
       {orbConfigs.map((orb, i) => (
@@ -65,7 +65,7 @@ function FloatingOrbs({ darkMode }: { darkMode: boolean }) {
   );
 }
 
-function LogoMark() {
+export function LogoMark() {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.5 }}
@@ -122,7 +122,7 @@ function LogoMark() {
   );
 }
 
-function FeatureCard({
+export function FeatureCard({
   icon: Icon,
   title,
   caption,
