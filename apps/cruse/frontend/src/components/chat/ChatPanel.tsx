@@ -69,13 +69,14 @@ export function ChatPanel() {
             {sampleQueries.length > 0 ? 'Try one of these to get started' : 'Send a message to get started'}
           </Typography>
           {sampleQueries.length > 0 && (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', maxWidth: { xs: 300, md: 500 } }}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', maxWidth: { xs: '90%', md: 500 } }}>
               {sampleQueries.map((query, i) => (
                 <motion.div
                   key={query}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.1, type: 'spring', stiffness: 300, damping: 20 }}
+                  style={{ maxWidth: '100%' }}
                 >
                   <Chip
                     label={query}
@@ -83,6 +84,13 @@ export function ChatPanel() {
                     color="primary"
                     onClick={() => setPendingInput(query)}
                     sx={{
+                      maxWidth: '100%',
+                      height: 'auto',
+                      '& .MuiChip-label': {
+                        whiteSpace: 'normal',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      },
                       cursor: 'pointer',
                       '&:hover': {
                         bgcolor: 'primary.main',
