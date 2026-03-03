@@ -1,6 +1,8 @@
 'use client';
 
-import { Box } from '@mui/material';
+import { useEffect } from 'react';
+import { Box, Drawer, Fab, useMediaQuery, useTheme } from '@mui/material';
+import { Widgets as WidgetsIcon } from '@mui/icons-material';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCruseStore } from '@/store/cruseStore';
 import { Header } from '@/components/Header';
@@ -15,10 +17,21 @@ import { BackgroundEngine } from '@/components/theme/BackgroundEngine';
 import { SpotlightTour } from '@/components/tour/SpotlightTour';
 
 export function CruseLayout() {
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   const widgetSchema = useCruseStore((s) => s.widgetSchema);
   const darkMode = useCruseStore((s) => s.darkMode);
+  const widgetDrawerOpen = useCruseStore((s) => s.widgetDrawerOpen);
+  const setWidgetDrawerOpen = useCruseStore((s) => s.setWidgetDrawerOpen);
   const hasWidget = widgetSchema !== null;
   const widgetColor = widgetSchema && !('_html' in widgetSchema) ? (widgetSchema.color || '#3b82f6') : null;
+
+  // Auto-open widget drawer on mobile when a new widget arrives
+  useEffect(() => {
+    if (isMobile && widgetSchema) {
+      setWidgetDrawerOpen(true);
+    }
+  }, [isMobile, widgetSchema, setWidgetDrawerOpen]);
 
   return (
     <Box
@@ -64,40 +77,42 @@ export function CruseLayout() {
         sx={{
           flex: 1,
           display: 'flex',
-          gap: 2,
-          px: 2,
-          pb: 2,
+          gap: { xs: 0, md: 2 },
+          px: { xs: 1, md: 2 },
+          pb: { xs: 1, md: 2 },
           overflow: 'hidden',
           position: 'relative',
           zIndex: 1,
         }}
       >
-        {/* Widget panel (left) */}
-        <div data-tour="widget-area" style={{ alignSelf: 'stretch', display: hasWidget ? 'block' : 'none' }}>
-          <AnimatePresence mode="wait">
-            {hasWidget && (
-              <motion.div
-                key="widget-panel"
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 420, opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                style={{ flexShrink: 0, overflow: 'hidden' }}
-              >
-                <Box
-                  className="glass-panel"
-                  sx={{
-                    height: '100%',
-                    overflow: 'auto',
-                    p: 0,
-                  }}
+        {/* Widget panel (left) — desktop only, inline */}
+        {!isMobile && (
+          <div data-tour="widget-area" style={{ alignSelf: 'stretch', display: hasWidget ? 'block' : 'none' }}>
+            <AnimatePresence mode="wait">
+              {hasWidget && (
+                <motion.div
+                  key="widget-panel"
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: 420, opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  style={{ flexShrink: 0, overflow: 'hidden' }}
                 >
-                  <WidgetCard />
-                </Box>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                  <Box
+                    className="glass-panel"
+                    sx={{
+                      height: '100%',
+                      overflow: 'auto',
+                      p: 0,
+                    }}
+                  >
+                    <WidgetCard />
+                  </Box>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
 
         {/* Chat panel (right, fills remaining space) */}
         <Box
@@ -115,6 +130,44 @@ export function CruseLayout() {
           <InputBar />
         </Box>
       </Box>
+
+      {/* Widget drawer — mobile only, bottom sheet */}
+      {isMobile && (
+        <Drawer
+          anchor="bottom"
+          open={widgetDrawerOpen && hasWidget}
+          onClose={() => setWidgetDrawerOpen(false)}
+          PaperProps={{
+            sx: {
+              maxHeight: '80vh',
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              overflow: 'auto',
+            },
+          }}
+        >
+          <Box sx={{ p: 0 }}>
+            <WidgetCard />
+          </Box>
+        </Drawer>
+      )}
+
+      {/* FAB to re-open widget drawer on mobile when dismissed */}
+      {isMobile && hasWidget && !widgetDrawerOpen && (
+        <Fab
+          color="primary"
+          size="small"
+          onClick={() => setWidgetDrawerOpen(true)}
+          sx={{
+            position: 'fixed',
+            bottom: 80,
+            right: 16,
+            zIndex: 10,
+          }}
+        >
+          <WidgetsIcon />
+        </Fab>
+      )}
 
       {/* Admin console drawer */}
       <AdminDrawer />
