@@ -134,6 +134,7 @@ export function ChatPanel() {
                 <Box
                   sx={{
                     maxWidth: { xs: '90%', md: '80%' },
+                    minWidth: 0,
                     px: 2,
                     py: 1.5,
                     borderRadius: 2,
@@ -146,11 +147,11 @@ export function ChatPanel() {
                   }}
                 >
                   {msg.role === 'user' ? (
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                       {msg.content}
                     </Typography>
                   ) : (
-                    <Box className="markdown-content" sx={{ '& > *:last-child': { mb: 0 } }}>
+                    <Box className="markdown-content" sx={{ '& > *:last-child': { mb: 0 }, overflowWrap: 'break-word', wordBreak: 'break-word', overflow: 'hidden' }}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
                         {msg.content}
                       </ReactMarkdown>
@@ -173,13 +174,14 @@ export function ChatPanel() {
             <Box
               sx={{
                 maxWidth: { xs: '90%', md: '80%' },
+                minWidth: 0,
                 px: 2,
                 py: 1.5,
                 borderRadius: 2,
                 bgcolor: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
               }}
             >
-              <Box className="markdown-content">
+              <Box className="markdown-content" sx={{ overflowWrap: 'break-word', wordBreak: 'break-word', overflow: 'hidden' }}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
                   {streamingContent}
                 </ReactMarkdown>
