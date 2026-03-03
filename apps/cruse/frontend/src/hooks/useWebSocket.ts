@@ -7,6 +7,14 @@ const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:5001';
 const RECONNECT_DELAY_MS = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
+// generateId() is unavailable on plain HTTP; fall back to Math.random
+function generateId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return generateId();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
 interface ServerEvent {
   type: string;
   data: unknown;
@@ -40,7 +48,7 @@ export function useWebSocket() {
 
         case 'chat_complete':
           addMessage({
-            id: crypto.randomUUID(),
+            id: generateId(),
             role: 'assistant',
             content: event.data as string,
             timestamp: Date.now(),
@@ -67,11 +75,11 @@ export function useWebSocket() {
           break;
 
         case 'agent_trace':
-          addTraceEntry({ ...(event.data as any), id: crypto.randomUUID() });
+          addTraceEntry({ ...(event.data as any), id: generateId() });
           break;
 
         case 'server_log':
-          addLogEntry({ ...(event.data as any), id: crypto.randomUUID() });
+          addLogEntry({ ...(event.data as any), id: generateId() });
           break;
 
         case 'done':
@@ -176,7 +184,7 @@ export function useWebSocket() {
 
       // Add user message to store
       addMessage({
-        id: crypto.randomUUID(),
+        id: generateId(),
         role: 'user',
         content: text,
         timestamp: Date.now(),
