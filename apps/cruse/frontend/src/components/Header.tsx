@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import {
   AppBar,
   Badge,
@@ -14,6 +14,11 @@ import {
   Button,
   Box,
   Chip,
+  Menu,
+  ListItemIcon,
+  ListItemText,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   AccountTree,
@@ -23,6 +28,7 @@ import {
   LightMode,
   Add as AddIcon,
   Hub as HubIcon,
+  Menu as MenuIcon,
 } from '@mui/icons-material';
 import { UserButton } from '@clerk/nextjs';
 import type { SelectChangeEvent } from '@mui/material';
@@ -30,6 +36,9 @@ import { useCruseStore } from '@/store/cruseStore';
 import { useAuthenticatedFetch } from '@/utils/api';
 
 export function Header() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(null);
   const availableSystems = useCruseStore((s) => s.availableSystems);
   const agentNetwork = useCruseStore((s) => s.agentNetwork);
   const sessionId = useCruseStore((s) => s.sessionId);
@@ -135,7 +144,7 @@ export function Header() {
         zIndex: 2,
       }}
     >
-      <Toolbar sx={{ gap: 2 }}>
+      <Toolbar sx={{ gap: { xs: 1, md: 2 }, minHeight: { xs: 56, md: 64 } }}>
         {/* Logo */}
         <HubIcon sx={{ color: 'primary.main', fontSize: 28 }} />
         <Typography
@@ -145,7 +154,7 @@ export function Header() {
             background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            mr: 2,
+            mr: { xs: 0, md: 2 },
           }}
         >
           CRUSE
@@ -160,7 +169,7 @@ export function Header() {
           size="small"
           disabled={isStreaming}
           sx={{
-            minWidth: 240,
+            minWidth: { xs: 140, md: 240 },
             '& .MuiSelect-select': {
               py: 0.75,
             },
@@ -181,70 +190,130 @@ export function Header() {
           ])}
         </Select>
 
-        {/* Connection status chip */}
+        {/* Connection status chip — hidden on xs */}
         <Chip
           size="small"
           label={isConnected ? 'Connected' : 'Disconnected'}
           color={isConnected ? 'success' : 'default'}
           variant="outlined"
-          sx={{ ml: 1 }}
+          sx={{ ml: 1, display: { xs: 'none', sm: 'inline-flex' } }}
         />
 
         <Box sx={{ flex: 1 }} />
 
-        {/* New Chat button */}
-        <Button
-          variant="outlined"
-          startIcon={<AddIcon />}
-          onClick={handleNewChat}
-          disabled={!agentNetwork || isStreaming}
-          size="small"
-        >
-          New Chat
-        </Button>
+        {/* Desktop action buttons — hidden on mobile */}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={handleNewChat}
+            disabled={!agentNetwork || isStreaming}
+            size="small"
+          >
+            New Chat
+          </Button>
 
-        {/* Network visualization toggle */}
-        <Tooltip title={networkDrawerOpen ? 'Close network view' : 'View agent network'}>
-          <span>
-            <IconButton onClick={toggleNetworkDrawer} size="small" disabled={!agentNetwork}>
-              <AccountTree sx={{ color: networkDrawerOpen ? '#3b82f6' : undefined }} />
-            </IconButton>
-          </span>
-        </Tooltip>
+          <Tooltip title={networkDrawerOpen ? 'Close network view' : 'View agent network'}>
+            <span>
+              <IconButton onClick={toggleNetworkDrawer} size="small" disabled={!agentNetwork}>
+                <AccountTree sx={{ color: networkDrawerOpen ? '#3b82f6' : undefined }} />
+              </IconButton>
+            </span>
+          </Tooltip>
 
-        {/* Debug monitor toggle */}
-        <Tooltip title={debugDrawerOpen ? 'Close debug monitor' : 'Open debug monitor'}>
-          <IconButton data-tour="debug-toggle" onClick={toggleDebugDrawer} size="small">
-            <Badge badgeContent={debugUnreadCount} color="error" max={99}>
-              <BugReport sx={{ color: debugDrawerOpen ? '#3b82f6' : undefined }} />
-            </Badge>
-          </IconButton>
-        </Tooltip>
-
-        {/* Admin console toggle */}
-        {userRole === 'admin' && (
-          <Tooltip title={adminDrawerOpen ? 'Close admin console' : 'Admin console'}>
-            <IconButton onClick={toggleAdminDrawer} size="small">
-              <AdminPanelSettings sx={{ color: adminDrawerOpen ? '#3b82f6' : undefined }} />
+          <Tooltip title={debugDrawerOpen ? 'Close debug monitor' : 'Open debug monitor'}>
+            <IconButton data-tour="debug-toggle" onClick={toggleDebugDrawer} size="small">
+              <Badge badgeContent={debugUnreadCount} color="error" max={99}>
+                <BugReport sx={{ color: debugDrawerOpen ? '#3b82f6' : undefined }} />
+              </Badge>
             </IconButton>
           </Tooltip>
-        )}
 
-        {/* Dark/Light toggle */}
-        <IconButton data-tour="theme-toggle" onClick={toggleDarkMode} size="small">
-          {darkMode ? (
-            <LightMode sx={{ color: '#fbbf24' }} />
-          ) : (
-            <DarkMode sx={{ color: '#64748b' }} />
+          {userRole === 'admin' && (
+            <Tooltip title={adminDrawerOpen ? 'Close admin console' : 'Admin console'}>
+              <IconButton onClick={toggleAdminDrawer} size="small">
+                <AdminPanelSettings sx={{ color: adminDrawerOpen ? '#3b82f6' : undefined }} />
+              </IconButton>
+            </Tooltip>
           )}
-        </IconButton>
 
-        {/* User avatar */}
-        <UserButton
-          appearance={{
-            elements: { avatarBox: { width: 32, height: 32 } },
-          }}
-        />
+          <IconButton data-tour="theme-toggle" onClick={toggleDarkMode} size="small">
+            {darkMode ? (
+              <LightMode sx={{ color: '#fbbf24' }} />
+            ) : (
+              <DarkMode sx={{ color: '#64748b' }} />
+            )}
+          </IconButton>
+
+          <UserButton
+            appearance={{
+              elements: { avatarBox: { width: 32, height: 32 } },
+            }}
+          />
+        </Box>
+
+        {/* Mobile: dark/light toggle + hamburger menu */}
+        <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 0.5 }}>
+          <IconButton data-tour="theme-toggle" onClick={toggleDarkMode} size="small">
+            {darkMode ? (
+              <LightMode sx={{ color: '#fbbf24' }} />
+            ) : (
+              <DarkMode sx={{ color: '#64748b' }} />
+            )}
+          </IconButton>
+
+          <IconButton onClick={(e) => setMobileMenuAnchor(e.currentTarget)} size="small">
+            <Badge badgeContent={debugUnreadCount} color="error" max={99} variant="dot">
+              <MenuIcon />
+            </Badge>
+          </IconButton>
+        </Box>
+
+        {/* Mobile menu */}
+        {isMobile && (
+          <Menu
+            anchorEl={mobileMenuAnchor}
+            open={Boolean(mobileMenuAnchor)}
+            onClose={() => setMobileMenuAnchor(null)}
+            slotProps={{ paper: { sx: { minWidth: 200 } } }}
+          >
+            <MenuItem
+              onClick={() => { handleNewChat(); setMobileMenuAnchor(null); }}
+              disabled={!agentNetwork || isStreaming}
+            >
+              <ListItemIcon><AddIcon fontSize="small" /></ListItemIcon>
+              <ListItemText>New Chat</ListItemText>
+            </MenuItem>
+            <MenuItem
+              onClick={() => { toggleNetworkDrawer(); setMobileMenuAnchor(null); }}
+              disabled={!agentNetwork}
+            >
+              <ListItemIcon><AccountTree fontSize="small" /></ListItemIcon>
+              <ListItemText>Network View</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={() => { toggleDebugDrawer(); setMobileMenuAnchor(null); }}>
+              <ListItemIcon>
+                <Badge badgeContent={debugUnreadCount} color="error" max={99}>
+                  <BugReport fontSize="small" />
+                </Badge>
+              </ListItemIcon>
+              <ListItemText>Debug Monitor</ListItemText>
+            </MenuItem>
+            {userRole === 'admin' && (
+              <MenuItem onClick={() => { toggleAdminDrawer(); setMobileMenuAnchor(null); }}>
+                <ListItemIcon><AdminPanelSettings fontSize="small" /></ListItemIcon>
+                <ListItemText>Admin Console</ListItemText>
+              </MenuItem>
+            )}
+            <Box sx={{ px: 2, py: 1 }}>
+              <UserButton
+                appearance={{
+                  elements: { avatarBox: { width: 32, height: 32 } },
+                }}
+              />
+            </Box>
+          </Menu>
+        )}
       </Toolbar>
     </AppBar>
   );

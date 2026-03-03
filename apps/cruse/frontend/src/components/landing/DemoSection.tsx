@@ -3,8 +3,7 @@
 import { Box, Typography } from '@mui/material';
 import { motion } from 'framer-motion';
 
-const VIDEO_URL =
-  'https://github.com/user-attachments/assets/8cf88c66-c8c4-42dd-972b-df086c228ab9';
+const VIDEO_URL = '/demo.mp4';
 
 const spring = { type: 'spring' as const, stiffness: 300, damping: 30 };
 

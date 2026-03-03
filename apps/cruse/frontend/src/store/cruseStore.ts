@@ -62,6 +62,7 @@ interface CruseState {
   darkMode: boolean;
   pendingInput: string | null;
   widgetSubmitted: boolean;
+  widgetDrawerOpen: boolean;
 
   // Tour
   tourActive: boolean;
@@ -96,6 +97,8 @@ interface CruseState {
   toggleNetworkDrawer: () => void;
   setConnectivityData: (data: ConnectivityData | null) => void;
   setConnectivityLoading: (loading: boolean) => void;
+  toggleWidgetDrawer: () => void;
+  setWidgetDrawerOpen: (open: boolean) => void;
   setTourStep: (step: number) => void;
   endTour: () => void;
   reset: () => void;
@@ -128,6 +131,7 @@ const initialState = {
   darkMode: true,
   pendingInput: null,
   widgetSubmitted: false,
+  widgetDrawerOpen: false,
   tourActive: true,
   tourStep: 0,
 };
@@ -188,6 +192,10 @@ export const useCruseStore = create<CruseState>((set) => ({
     set((state) => ({ networkDrawerOpen: !state.networkDrawerOpen })),
   setConnectivityData: (data) => set({ connectivityData: data }),
   setConnectivityLoading: (loading) => set({ connectivityLoading: loading }),
+
+  toggleWidgetDrawer: () =>
+    set((state) => ({ widgetDrawerOpen: !state.widgetDrawerOpen })),
+  setWidgetDrawerOpen: (open) => set({ widgetDrawerOpen: open }),
 
   setTourStep: (step) => set({ tourStep: step }),
   endTour: () => set({ tourActive: false, tourStep: 0 }),
