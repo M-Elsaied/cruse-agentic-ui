@@ -4,7 +4,7 @@ import { Box } from '@mui/material';
 import { LandingNav } from './LandingNav';
 import { HeroSection } from './HeroSection';
 import { FeaturesSection } from './FeaturesSection';
-import { DemoSection } from './DemoSection';
+
 import { CTASection } from './CTASection';
 
 export function LandingPage() {
@@ -21,7 +21,6 @@ export function LandingPage() {
       <LandingNav />
       <HeroSection />
       <FeaturesSection />
-      <DemoSection />
       <CTASection />
     </Box>
   );
