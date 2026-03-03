@@ -202,8 +202,8 @@ export default function SignInPage() {
                   headerSubtitle: { color: '#94a3b8' },
                   formFieldLabel: { color: '#94a3b8' },
                   formFieldInput: {
-                    background: 'rgba(255,255,255,0.06)',
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    background: 'rgba(255,255,255,0.12)',
+                    borderColor: 'rgba(255,255,255,0.25)',
                     color: '#f1f5f9',
                     '&:focus': {
                       borderColor: '#3b82f6',
