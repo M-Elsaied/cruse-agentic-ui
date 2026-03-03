@@ -34,6 +34,7 @@ export function HeroSection() {
           height: '100%',
           objectFit: 'cover',
           zIndex: 0,
+          pointerEvents: 'none',
         }}
       >
         <source src="/demo.mp4" type="video/mp4" />
@@ -50,6 +51,7 @@ export function HeroSection() {
           background:
             'radial-gradient(ellipse at 50% 50%, rgba(15, 23, 42, 0.7) 0%, rgba(15, 23, 42, 0.55) 50%, rgba(15, 23, 42, 0.75) 100%)',
           zIndex: 1,
+          pointerEvents: 'none',
         }}
       />
 
@@ -130,29 +132,29 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.7 }}
         >
-          <Button
-            component={Link}
-            href="/sign-up"
-            variant="contained"
-            size="large"
-            sx={{
-              background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '1.1rem',
-              borderRadius: 3,
-              px: 5,
-              py: 1.5,
-              '&:hover': {
-                background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
-                boxShadow: '0 8px 30px rgba(59,130,246,0.5)',
-                transform: 'translateY(-2px)',
-              },
-              transition: 'all 0.3s ease',
-            }}
-          >
-            Get Started
-          </Button>
+          <Link href="/sign-up" style={{ textDecoration: 'none' }}>
+            <Button
+              variant="contained"
+              size="large"
+              sx={{
+                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '1.1rem',
+                borderRadius: 3,
+                px: 5,
+                py: 1.5,
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+                  boxShadow: '0 8px 30px rgba(59,130,246,0.5)',
+                  transform: 'translateY(-2px)',
+                },
+                transition: 'all 0.3s ease',
+              }}
+            >
+              Get Started
+            </Button>
+          </Link>
         </motion.div>
       </Box>
     </Box>
