@@ -24,15 +24,14 @@ jobs:
           script: |
             set -euo pipefail
 
-            git config --global --add safe.directory /opt/cruse
             cd /opt/cruse
             BRANCH="${{ github.event.inputs.branch || 'main' }}"
-            git fetch origin
-            git checkout $BRANCH
-            git pull origin $BRANCH
+            sudo git fetch origin
+            sudo git checkout $BRANCH
+            sudo git pull origin $BRANCH
 
             cd deploy/cruse
-            docker compose -f docker-compose.prod.yml up -d --build
+            sudo docker compose -f docker-compose.prod.yml up -d --build
 
             echo "Waiting for health check..."
             sleep 10
@@ -46,4 +45,4 @@ jobs:
           key: ${{ secrets.CRUSE_EC2_SSH_KEY }}
           script: |
             cd /opt/cruse/deploy/cruse
-            docker compose -f docker-compose.prod.yml ps
+            sudo docker compose -f docker-compose.prod.yml ps
