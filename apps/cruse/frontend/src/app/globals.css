@@ -170,3 +170,56 @@ code {
   0%   { background-position: -200% center; }
   100% { background-position: 200% center; }
 }
+
+@keyframes bounceDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(10px); }
+}
+
+/* Landing page styles */
+.landing-scroll {
+  overflow: auto !important;
+  height: 100vh;
+  scroll-behavior: smooth;
+}
+
+.hero-video-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.7) 0%,
+    rgba(15, 23, 42, 0.5) 40%,
+    rgba(15, 23, 42, 0.8) 100%
+  );
+  z-index: 1;
+}
+
+/* Browser frame for demo section */
+.browser-frame {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.browser-chrome {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.browser-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.browser-dot:nth-child(1) { background: #ef4444; }
+.browser-dot:nth-child(2) { background: #eab308; }
+.browser-dot:nth-child(3) { background: #22c55e; }
