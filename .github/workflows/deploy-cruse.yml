@@ -1,6 +1,8 @@
 name: Deploy CRUSE
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       branch:
@@ -23,9 +25,10 @@ jobs:
             set -euo pipefail
 
             cd /opt/cruse
+            BRANCH="${{ github.event.inputs.branch || 'main' }}"
             git fetch origin
-            git checkout ${{ github.event.inputs.branch }}
-            git pull origin ${{ github.event.inputs.branch }}
+            git checkout $BRANCH
+            git pull origin $BRANCH
 
             cd deploy/cruse
             docker compose -f docker-compose.prod.yml up -d --build
