@@ -31,7 +31,7 @@ jobs:
             sudo git pull origin $BRANCH
 
             cd deploy/cruse
-            sudo docker compose -f docker-compose.prod.yml up -d --build
+            sudo docker compose -f docker-compose.prod.yml up -d --build --force-recreate
 
             echo "Waiting for health check..."
             sleep 10
