@@ -17,15 +17,6 @@
 import asyncio
 import logging
 import os
-from pathlib import Path
-
-from dotenv import load_dotenv
-
-# Load .env.local from the backend directory (works for both direct uvicorn and run.py)
-_backend_dir = Path(__file__).resolve().parent
-_env_local = _backend_dir / ".env.local"
-if _env_local.exists():
-    load_dotenv(_env_local, override=False)
 
 from fastapi import Depends
 from fastapi import FastAPI
@@ -302,6 +293,15 @@ async def admin_delete_session(session_id: str, _user: ClerkUser = Depends(requi
 @app.on_event("startup")
 async def startup():
     """Start background tasks and warm caches."""
+    # Load .env.local for local dev (no-op if file absent or vars already set)
+    from pathlib import Path  # pylint: disable=import-outside-toplevel
+
+    from dotenv import load_dotenv  # pylint: disable=import-outside-toplevel
+
+    _env_local = Path(__file__).resolve().parent / ".env.local"
+    if _env_local.exists():
+        load_dotenv(_env_local, override=False)
+
     logger.info("CRUSE Next-Gen backend starting...")
     await clerk_verifier.init()
     await rate_limiter.init()
