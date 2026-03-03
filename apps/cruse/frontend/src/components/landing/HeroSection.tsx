@@ -1,67 +1,70 @@
 'use client';
 
-import { useState } from 'react';
 import { Box, Typography, Button } from '@mui/material';
-import { KeyboardArrowDown } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { FloatingOrbs, LogoMark } from './WelcomeHero';
 
 const spring = { type: 'spring' as const, stiffness: 300, damping: 30 };
 
-const VIDEO_URL =
-  'https://github.com/user-attachments/assets/8cf88c66-c8c4-42dd-972b-df086c228ab9';
-
 export function HeroSection() {
-  const [videoFailed, setVideoFailed] = useState(false);
-
   return (
     <Box
       sx={{
         position: 'relative',
-        height: '100vh',
+        minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
       }}
     >
-      {/* Video background */}
-      {!videoFailed && (
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          onError={() => setVideoFailed(true)}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: 0,
-          }}
-        >
-          <source src={VIDEO_URL} type="video/mp4" />
-        </video>
-      )}
+      {/* Background video layer */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: 0,
+        }}
+      >
+        <source src="/demo.mp4" type="video/mp4" />
+      </video>
 
-      {/* Gradient overlay */}
-      <div className="hero-video-overlay" />
+      {/* Dark gradient overlay / scrim */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background:
+            'radial-gradient(ellipse at 50% 50%, rgba(15, 23, 42, 0.7) 0%, rgba(15, 23, 42, 0.55) 50%, rgba(15, 23, 42, 0.75) 100%)',
+          zIndex: 1,
+        }}
+      />
 
       {/* Floating orbs */}
       <FloatingOrbs darkMode={true} />
 
-      {/* Content */}
+      {/* Text content */}
       <Box
         sx={{
           position: 'relative',
-          zIndex: 2,
+          zIndex: 3,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 3,
+          gap: 2,
           px: 3,
           textAlign: 'center',
         }}
@@ -86,7 +89,7 @@ export function HeroSection() {
             variant="h2"
             sx={{
               fontWeight: 800,
-              fontSize: { xs: '2.5rem', md: '4rem' },
+              fontSize: { xs: '2rem', md: '2.5rem', lg: '3rem' },
               lineHeight: 1.1,
               background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6)',
               backgroundSize: '200% auto',
@@ -108,7 +111,7 @@ export function HeroSection() {
           transition={{ ...spring, delay: 0.5 }}
         >
           <Typography
-            variant="h6"
+            variant="body1"
             sx={{
               color: '#94a3b8',
               fontWeight: 400,
@@ -150,24 +153,6 @@ export function HeroSection() {
           >
             Get Started
           </Button>
-        </motion.div>
-      </Box>
-
-      {/* Scroll indicator */}
-      <Box
-        sx={{
-          position: 'absolute',
-          bottom: 32,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 2,
-        }}
-      >
-        <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <KeyboardArrowDown sx={{ fontSize: 32, color: '#94a3b8', opacity: 0.6 }} />
         </motion.div>
       </Box>
     </Box>
