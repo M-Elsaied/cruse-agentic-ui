@@ -76,26 +76,26 @@ export function CTASection() {
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             style={{ display: 'inline-block', borderRadius: 12 }}
           >
-            <Button
-              component={Link}
-              href="/sign-up"
-              variant="contained"
-              size="large"
-              sx={{
-                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '1.1rem',
-                borderRadius: 3,
-                px: 6,
-                py: 1.5,
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
-                },
-              }}
-            >
-              Get Started Free
-            </Button>
+            <Link href="/sign-up" style={{ textDecoration: 'none' }}>
+              <Button
+                variant="contained"
+                size="large"
+                sx={{
+                  background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '1.1rem',
+                  borderRadius: 3,
+                  px: 6,
+                  py: 1.5,
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+                  },
+                }}
+              >
+                Get Started Free
+              </Button>
+            </Link>
           </motion.div>
 
           <Typography
