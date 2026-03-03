@@ -67,6 +67,7 @@ pre {
   border-radius: 8px;
   padding: 12px 16px;
   overflow-x: auto;
+  max-width: 100%;
   font-size: 13px;
   background: rgba(0, 0, 0, 0.3) !important;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -92,6 +93,11 @@ code {
 
 [data-theme='light'] .markdown-content :not(pre) > code {
   background: rgba(0, 0, 0, 0.06);
+}
+
+.markdown-content {
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 /* Markdown content styling */

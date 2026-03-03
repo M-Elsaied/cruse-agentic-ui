@@ -50,7 +50,7 @@ export function MessageBubble({ message, darkMode, index }: MessageBubbleProps) 
           {isUser ? <Person fontSize="small" /> : <SmartToy fontSize="small" />}
         </Avatar>
 
-        <Box sx={{ position: 'relative', maxWidth: '80%' }}>
+        <Box sx={{ position: 'relative', maxWidth: { xs: '85%', md: '80%' }, minWidth: 0 }}>
           <Box
             sx={{
               px: 2,
@@ -67,11 +67,11 @@ export function MessageBubble({ message, darkMode, index }: MessageBubbleProps) 
             }}
           >
             {isUser ? (
-              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                 {message.content}
               </Typography>
             ) : (
-              <Box className="markdown-content" sx={{ '& > *:last-child': { mb: 0 } }}>
+              <Box className="markdown-content" sx={{ '& > *:last-child': { mb: 0 }, overflowWrap: 'break-word', wordBreak: 'break-word', overflow: 'hidden' }}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {message.content}
                 </ReactMarkdown>

@@ -1,14 +1,18 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Box, Typography, IconButton } from '@mui/material';
-import { Close as CloseIcon, CheckCircle as CheckIcon } from '@mui/icons-material';
+import { Box, Typography, IconButton, Button } from '@mui/material';
+import { Close as CloseIcon, CheckCircle as CheckIcon, Send as SendIcon } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCruseStore } from '@/store/cruseStore';
 import { DynamicIcon } from '@/components/widget/DynamicIcon';
 import { SchemaForm } from '@/components/widget/SchemaForm';
 
-export function WidgetCard() {
+interface WidgetCardProps {
+  onSubmit?: () => void;
+}
+
+export function WidgetCard({ onSubmit }: WidgetCardProps = {}) {
   const widgetSchema = useCruseStore((s) => s.widgetSchema);
   const widgetFormData = useCruseStore((s) => s.widgetFormData);
   const widgetSubmitted = useCruseStore((s) => s.widgetSubmitted);
@@ -123,9 +127,21 @@ export function WidgetCard() {
         {schema ? (
           <>
             <SchemaForm schema={schema} formData={widgetFormData} onChange={handleChange} />
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              Fill out the form above, then use the chat input to send your message.
-            </Typography>
+            {onSubmit ? (
+              <Button
+                variant="contained"
+                endIcon={<SendIcon />}
+                onClick={onSubmit}
+                fullWidth
+                sx={{ mt: 2 }}
+              >
+                Submit
+              </Button>
+            ) : (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                Fill out the form above, then use the chat input to send your message.
+              </Typography>
+            )}
           </>
         ) : (
           <Typography variant="body2" color="text.secondary">
