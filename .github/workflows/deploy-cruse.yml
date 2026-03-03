@@ -24,6 +24,7 @@ jobs:
           script: |
             set -euo pipefail
 
+            git config --global --add safe.directory /opt/cruse
             cd /opt/cruse
             BRANCH="${{ github.event.inputs.branch || 'main' }}"
             git fetch origin
