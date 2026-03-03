@@ -36,7 +36,7 @@ export function CruseLayout() {
   return (
     <Box
       sx={{
-        height: '100vh',
+        height: '100dvh',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
