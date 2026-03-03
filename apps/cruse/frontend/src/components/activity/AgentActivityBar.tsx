@@ -26,14 +26,17 @@ export function AgentActivityBar() {
         display: 'flex',
         alignItems: 'center',
         gap: 0.75,
-        px: 2,
+        px: { xs: 1, md: 2 },
         py: 0.75,
         zIndex: 2,
         position: 'relative',
-        overflow: 'hidden',
+        overflowX: 'auto',
+        overflowY: 'hidden',
+        '&::-webkit-scrollbar': { display: 'none' },
+        scrollbarWidth: 'none',
       }}
     >
-      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, mr: 0.5 }}>
+      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, mr: 0.5, flexShrink: 0 }}>
         Agent chain:
       </Typography>
       <AnimatePresence>
@@ -46,7 +49,7 @@ export function AgentActivityBar() {
               animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ delay: i * 0.1 }}
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
             >
               {/* Arrow connector before this agent (except the first) */}
               {i > 0 && (
