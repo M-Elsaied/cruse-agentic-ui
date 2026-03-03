@@ -56,37 +56,37 @@ export function LandingNav() {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Button
-              component={Link}
-              href="/sign-in"
-              sx={{
-                color: '#94a3b8',
-                textTransform: 'none',
-                fontWeight: 500,
-                display: { xs: 'none', sm: 'inline-flex' },
-                '&:hover': { color: '#f1f5f9' },
-              }}
-            >
-              Sign In
-            </Button>
-            <Button
-              component={Link}
-              href="/sign-up"
-              variant="contained"
-              sx={{
-                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-                textTransform: 'none',
-                fontWeight: 600,
-                borderRadius: 2,
-                px: 3,
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
-                  boxShadow: '0 4px 20px rgba(59,130,246,0.4)',
-                },
-              }}
-            >
-              Get Started
-            </Button>
+            <Link href="/sign-in" style={{ textDecoration: 'none' }}>
+              <Button
+                sx={{
+                  color: '#94a3b8',
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  display: { xs: 'none', sm: 'inline-flex' },
+                  '&:hover': { color: '#f1f5f9' },
+                }}
+              >
+                Sign In
+              </Button>
+            </Link>
+            <Link href="/sign-up" style={{ textDecoration: 'none' }}>
+              <Button
+                variant="contained"
+                sx={{
+                  background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  px: 3,
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+                    boxShadow: '0 4px 20px rgba(59,130,246,0.4)',
+                  },
+                }}
+              >
+                Get Started
+              </Button>
+            </Link>
           </Box>
         </Toolbar>
       </AppBar>
