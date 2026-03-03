@@ -35,6 +35,7 @@ from apps.cruse.backend.log_capture import LogRingBuffer
 from apps.cruse.backend.models import ChatMessage
 from apps.cruse.backend.models import ServerEventType
 from apps.cruse.backend.models import SessionCreate
+from apps.cruse.backend.rate_limiter import RateLimiter
 from apps.cruse.backend.session_manager import SessionManager
 from apps.cruse.backend.session_manager import get_cruse_connectivity
 from apps.cruse.backend.session_store import SessionTimeoutManager
@@ -78,6 +79,7 @@ app.add_middleware(
 session_manager = SessionManager()
 timeout_manager = SessionTimeoutManager(session_manager)
 log_buffer = LogRingBuffer(maxlen=500)
+rate_limiter = RateLimiter()
 
 
 # ─── REST Endpoints ──────────────────────────────────────────────
@@ -215,6 +217,26 @@ async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Que
                 user_input = f"{msg.text}\n\nForm submission context: {msg.form_data}"
 
             timeout_manager.touch(session_id)
+
+            # Rate-limit check (admins bypass)
+            allowed, remaining, limit = await rate_limiter.check_and_increment(ws_user.user_id, ws_user.role)
+            if not allowed:
+                await send_event(
+                    websocket,
+                    ServerEventType.RATE_LIMIT,
+                    {"allowed": False, "remaining": 0, "limit": limit},
+                )
+                await send_event(websocket, ServerEventType.DONE, None)
+                continue
+
+            # Notify non-admin users of remaining quota before processing
+            if remaining is not None:
+                await send_event(
+                    websocket,
+                    ServerEventType.RATE_LIMIT,
+                    {"allowed": True, "remaining": remaining, "limit": limit},
+                )
+
             await process_chat_message(websocket, cruse_session, user_input, log_buffer)
 
     except WebSocketDisconnect:
@@ -232,8 +254,12 @@ async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Que
 
 @app.get("/api/me")
 async def get_me(user: ClerkUser = Depends(get_current_user)):
-    """Return the authenticated user's info including role."""
-    return {"user_id": user.user_id, "email": user.email, "role": user.role}
+    """Return the authenticated user's info including role and rate limit."""
+    result: dict = {"user_id": user.user_id, "email": user.email, "role": user.role}
+    remaining, limit = rate_limiter.get_remaining(user.user_id, user.role)
+    if remaining is not None:
+        result["rate_limit"] = {"remaining": remaining, "limit": limit}
+    return result
 
 
 # ─── Admin Endpoints ─────────────────────────────────────────────
@@ -267,8 +293,19 @@ async def admin_delete_session(session_id: str, _user: ClerkUser = Depends(requi
 @app.on_event("startup")
 async def startup():
     """Start background tasks and warm caches."""
+    # Load .env.local for local dev (no-op if file absent or vars already set)
+    from pathlib import Path  # pylint: disable=import-outside-toplevel
+
+    from dotenv import load_dotenv  # pylint: disable=import-outside-toplevel
+
+    _env_local = Path(__file__).resolve().parent / ".env.local"
+    if _env_local.exists():
+        load_dotenv(_env_local, override=False)
+
     logger.info("CRUSE Next-Gen backend starting...")
     await clerk_verifier.init()
+    await rate_limiter.init()
+    rate_limiter.start_sync_loop()
     # Attach the log ring buffer to the root logger for debug streaming
     log_buffer.setFormatter(logging.Formatter("%(message)s"))
     logging.getLogger().addHandler(log_buffer)
@@ -295,6 +332,7 @@ async def startup():
 async def shutdown():
     """Clean up all sessions on shutdown."""
     logger.info("CRUSE Next-Gen backend shutting down...")
+    await rate_limiter.stop()
     await timeout_manager.stop()
     for info in session_manager.list_sessions():
         session_manager.destroy_session(info["session_id"])

@@ -10,7 +10,7 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 // generateId() is unavailable on plain HTTP; fall back to Math.random
 function generateId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return generateId();
+    return crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
@@ -38,6 +38,8 @@ export function useWebSocket() {
   const setAgentActivity = useCruseStore((s) => s.setAgentActivity);
   const addTraceEntry = useCruseStore((s) => s.addTraceEntry);
   const addLogEntry = useCruseStore((s) => s.addLogEntry);
+  const setRateLimit = useCruseStore((s) => s.setRateLimit);
+  const setRateLimitExceeded = useCruseStore((s) => s.setRateLimitExceeded);
 
   const handleEvent = useCallback(
     (event: ServerEvent) => {
@@ -82,6 +84,23 @@ export function useWebSocket() {
           addLogEntry({ ...(event.data as any), id: generateId() });
           break;
 
+        case 'rate_limit': {
+          const rl = event.data as { allowed: boolean; remaining: number; limit: number };
+          setRateLimit(Math.max(0, rl.remaining), rl.limit);
+          if (!rl.allowed) {
+            setRateLimitExceeded(true);
+            setIsStreaming(false);
+            setStreamingContent('');
+            addMessage({
+              id: generateId(),
+              role: 'assistant',
+              content: 'You have reached your daily request limit. Please try again tomorrow.',
+              timestamp: Date.now(),
+            });
+          }
+          break;
+        }
+
         case 'done':
           setIsStreaming(false);
           setStreamingContent('');
@@ -104,6 +123,8 @@ export function useWebSocket() {
       setAgentActivity,
       setConnectionError,
       setIsStreaming,
+      setRateLimit,
+      setRateLimitExceeded,
       setStreamingContent,
       setTheme,
       setWidgetSchema,
