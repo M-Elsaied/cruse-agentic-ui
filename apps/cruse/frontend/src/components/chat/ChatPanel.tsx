@@ -47,7 +47,7 @@ export function ChatPanel() {
       sx={{
         flex: 1,
         overflow: 'auto',
-        p: 2,
+        p: { xs: 1, md: 2 },
         display: 'flex',
         flexDirection: 'column',
         gap: 2,
@@ -69,7 +69,7 @@ export function ChatPanel() {
             {sampleQueries.length > 0 ? 'Try one of these to get started' : 'Send a message to get started'}
           </Typography>
           {sampleQueries.length > 0 && (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', maxWidth: 500 }}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', maxWidth: { xs: 300, md: 500 } }}>
               {sampleQueries.map((query, i) => (
                 <motion.div
                   key={query}
@@ -133,7 +133,7 @@ export function ChatPanel() {
               >
                 <Box
                   sx={{
-                    maxWidth: '80%',
+                    maxWidth: { xs: '90%', md: '80%' },
                     px: 2,
                     py: 1.5,
                     borderRadius: 2,
@@ -172,7 +172,7 @@ export function ChatPanel() {
             </Avatar>
             <Box
               sx={{
-                maxWidth: '80%',
+                maxWidth: { xs: '90%', md: '80%' },
                 px: 2,
                 py: 1.5,
                 borderRadius: 2,
