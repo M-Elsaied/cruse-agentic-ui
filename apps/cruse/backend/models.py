@@ -45,6 +45,7 @@ class ServerEventType(str, Enum):
     AGENT_ACTIVITY = "agent_activity"
     AGENT_TRACE = "agent_trace"
     SERVER_LOG = "server_log"
+    RATE_LIMIT = "rate_limit"
     DONE = "done"
     ERROR = "error"
 
