@@ -3,7 +3,7 @@
 <!-- pyml disable-next-line no-inline-html -->
 <div align="center">
 
-## Context Reactive User Experience — The UI Itself Is an Agent
+## Context Reactive User Experience - The UI Itself Is an Agent
 
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776ab?logo=python&logoColor=white)](https://python.org)
 [![Next.js 14](https://img.shields.io/badge/Next.js-14-000000?logo=next.js&logoColor=white)](https://nextjs.org)
