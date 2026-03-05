@@ -51,7 +51,7 @@ def test_anthropic_api_key():
         print("Successful call to Anthropic")
         print(f"response: {message.content[0].text}")
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print("Failed call to Anthropic. Exception:")
         print(e)
 

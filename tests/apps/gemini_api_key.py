@@ -41,7 +41,7 @@ def test_gemini_api_key():
         print("Successful call to Gemini")
         print(response.text)
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print("Failed call to Gemini. Exception:")
         print(e)
 
