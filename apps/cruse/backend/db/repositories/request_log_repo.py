@@ -29,7 +29,7 @@ class RequestLogRepository:
     def __init__(self, db: AsyncSession):
         self._db = db
 
-    async def log_request(
+    async def log_request(  # pylint: disable=too-many-arguments
         self,
         user_id: str,
         agent_network: str,
@@ -57,8 +57,8 @@ class RequestLogRepository:
     async def get_stats(self, *, start: datetime | None = None, end: datetime | None = None) -> dict:
         """Get aggregate stats for the given date range."""
         stmt = select(
-            func.count(RequestLog.id).label("total_requests"),
-            func.count(func.distinct(RequestLog.user_id)).label("unique_users"),
+            func.count(RequestLog.id).label("total_requests"),  # pylint: disable=not-callable
+            func.count(func.distinct(RequestLog.user_id)).label("unique_users"),  # pylint: disable=not-callable
             func.sum(RequestLog.prompt_tokens).label("total_prompt_tokens"),
             func.sum(RequestLog.completion_tokens).label("total_completion_tokens"),
             func.avg(RequestLog.latency_ms).label("avg_latency_ms"),
@@ -80,7 +80,7 @@ class RequestLogRepository:
     async def get_user_stats(self, user_id: str) -> dict:
         """Get per-user aggregate stats."""
         stmt = select(
-            func.count(RequestLog.id).label("total_requests"),
+            func.count(RequestLog.id).label("total_requests"),  # pylint: disable=not-callable
             func.sum(RequestLog.prompt_tokens).label("total_prompt_tokens"),
             func.sum(RequestLog.completion_tokens).label("total_completion_tokens"),
             func.avg(RequestLog.latency_ms).label("avg_latency_ms"),

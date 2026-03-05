@@ -48,7 +48,7 @@ class FeedbackRepository:
         await self._db.flush()
         return result.scalar_one()
 
-    async def add_report(
+    async def add_report(  # pylint: disable=too-many-arguments
         self,
         user_id: str,
         body: str,

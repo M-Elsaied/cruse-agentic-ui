@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_DATABASE_URL = "postgresql+asyncpg://cruse:cruse@localhost:5432/cruse"
 
-_engine = None
-_session_factory: async_sessionmaker[AsyncSession] | None = None
+_engine = None  # pylint: disable=invalid-name
+_session_factory: async_sessionmaker[AsyncSession] | None = None  # pylint: disable=invalid-name
 
 
 async def init_db() -> None:
@@ -35,7 +35,7 @@ async def init_db() -> None:
 
     Call once during application startup.
     """
-    global _engine, _session_factory  # noqa: PLW0603
+    global _engine, _session_factory  # noqa: PLW0603  # pylint: disable=global-statement
 
     database_url = os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL)
     pool_size = int(os.environ.get("DB_POOL_SIZE", "5"))
@@ -56,7 +56,7 @@ async def dispose_db() -> None:
 
     Call once during application shutdown.
     """
-    global _engine, _session_factory  # noqa: PLW0603
+    global _engine, _session_factory  # noqa: PLW0603  # pylint: disable=global-statement
 
     if _engine is not None:
         await _engine.dispose()

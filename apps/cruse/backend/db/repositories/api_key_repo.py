@@ -49,7 +49,7 @@ class ApiKeyRepository:
                     "encrypted_key": encrypted,
                     "label": label,
                     "is_valid": True,
-                    "updated_at": func.now(),
+                    "updated_at": func.now(),  # pylint: disable=not-callable
                 },
             )
             .returning(ApiKey)

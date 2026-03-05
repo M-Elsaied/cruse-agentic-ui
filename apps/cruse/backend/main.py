@@ -184,7 +184,7 @@ async def get_network_connectivity(agent_network: str, _user: ClerkUser = Depend
 
 
 @app.websocket("/ws/chat/{session_id}")
-async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Query(None)):
+async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Query(None)):  # pylint: disable=too-many-branches
     """WebSocket endpoint for real-time chat with a CRUSE session.
 
     Protocol:

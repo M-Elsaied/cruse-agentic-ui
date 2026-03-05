@@ -14,6 +14,8 @@
 #
 # END COPYRIGHT
 
+# pylint: disable=not-callable,unsubscriptable-object,too-few-public-methods
+
 from datetime import date
 from datetime import datetime
 

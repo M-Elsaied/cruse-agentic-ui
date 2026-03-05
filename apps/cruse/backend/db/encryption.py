@@ -22,12 +22,12 @@ from cryptography.fernet import InvalidToken
 
 logger = logging.getLogger(__name__)
 
-_fernet: Fernet | None = None
+_fernet: Fernet | None = None  # pylint: disable=invalid-name
 
 
 def _get_fernet() -> Fernet:
     """Return the module-level Fernet instance, creating it lazily from FERNET_KEY."""
-    global _fernet  # noqa: PLW0603
+    global _fernet  # noqa: PLW0603  # pylint: disable=global-statement
     if _fernet is None:
         key = os.environ.get("FERNET_KEY", "")
         if not key:
@@ -61,7 +61,7 @@ def decrypt_key(ciphertext: str, *, fernet: Fernet | None = None) -> str:
 
 def reset_fernet() -> None:
     """Reset the cached Fernet instance. Useful for testing."""
-    global _fernet  # noqa: PLW0603
+    global _fernet  # noqa: PLW0603  # pylint: disable=global-statement
     _fernet = None
 
 

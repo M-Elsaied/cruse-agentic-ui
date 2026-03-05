@@ -39,7 +39,7 @@ class UserRepository:
                     "email": email,
                     "name": name,
                     "role": role,
-                    "updated_at": func.now(),
+                    "updated_at": func.now(),  # pylint: disable=not-callable
                 },
             )
             .returning(User)

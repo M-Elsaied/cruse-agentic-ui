@@ -43,7 +43,7 @@ class PreferenceRepository:
     ) -> UserPreference:
         """Upsert user preferences. Only provided fields are updated."""
         values: dict = {"user_id": user_id}
-        update_set: dict = {"updated_at": func.now()}
+        update_set: dict = {"updated_at": func.now()}  # pylint: disable=not-callable
 
         if preferred_provider is not None:
             values["preferred_provider"] = preferred_provider

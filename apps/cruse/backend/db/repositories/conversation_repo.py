@@ -74,7 +74,7 @@ class ConversationRepository:
         result = await self._db.execute(
             update(Conversation)
             .where(Conversation.id == conversation_id)
-            .values(is_archived=True, updated_at=func.now())
+            .values(is_archived=True, updated_at=func.now())  # pylint: disable=not-callable
         )
         await self._db.flush()
         return result.rowcount > 0
@@ -82,7 +82,7 @@ class ConversationRepository:
     async def update_title(self, conversation_id: int, title: str) -> bool:
         """Set or update the conversation title."""
         result = await self._db.execute(
-            update(Conversation).where(Conversation.id == conversation_id).values(title=title, updated_at=func.now())
+            update(Conversation).where(Conversation.id == conversation_id).values(title=title, updated_at=func.now())  # pylint: disable=not-callable
         )
         await self._db.flush()
         return result.rowcount > 0
