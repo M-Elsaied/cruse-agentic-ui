@@ -16,6 +16,7 @@
 
 import os
 
+import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -33,10 +34,17 @@ TEST_DATABASE_URL = os.environ.get(
 @pytest_asyncio.fixture
 async def engine():
     """Create an async engine for each test. Tables are created once and
-    each test's transaction is rolled back, so there is no cross-test pollution."""
+    each test's transaction is rolled back, so there is no cross-test pollution.
+
+    Skips the test if PostgreSQL is not reachable.
+    """
     eng = create_async_engine(TEST_DATABASE_URL, echo=False)
-    async with eng.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with eng.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        await eng.dispose()
+        pytest.skip(f"PostgreSQL not available: {exc}")
     yield eng
     await eng.dispose()
 
