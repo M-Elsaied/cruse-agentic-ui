@@ -23,6 +23,17 @@ function scrapeLegacyFormData(): Record<string, unknown> | null {
   return Object.keys(result).length > 0 ? result : null;
 }
 
+function formatFormData(data: Record<string, unknown>): string {
+  const entries = Object.entries(data).filter(
+    ([, v]) => v !== undefined && v !== null && v !== '',
+  );
+  if (entries.length === 0) return '<form submitted>';
+  const lines = entries.map(
+    ([k, v]) => `• ${k.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}: ${v}`,
+  );
+  return `Form submitted:\n${lines.join('\n')}`;
+}
+
 export function InputBar() {
   const [input, setInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -77,7 +88,7 @@ export function InputBar() {
     // Need either text or form data to send
     if (!text && !formData) return;
 
-    const messageText = text || '<form submitted>';
+    const messageText = text || formatFormData(formData!);
     sendMessage(messageText, formData);
     if (formData) {
       setWidgetSubmitted(true);

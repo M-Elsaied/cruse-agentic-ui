@@ -17,6 +17,17 @@ import { BackgroundEngine } from '@/components/theme/BackgroundEngine';
 import { SpotlightTour } from '@/components/tour/SpotlightTour';
 import { useWebSocket } from '@/hooks/useWebSocket';
 
+function formatFormData(data: Record<string, unknown>): string {
+  const entries = Object.entries(data).filter(
+    ([, v]) => v !== undefined && v !== null && v !== '',
+  );
+  if (entries.length === 0) return '<form submitted>';
+  const lines = entries.map(
+    ([k, v]) => `• ${k.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}: ${v}`,
+  );
+  return `Form submitted:\n${lines.join('\n')}`;
+}
+
 export function CruseLayout() {
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
@@ -32,7 +43,7 @@ export function CruseLayout() {
 
   const handleMobileSubmit = useCallback(() => {
     if (Object.keys(widgetFormData).length > 0) {
-      sendMessage('<form submitted>', widgetFormData);
+      sendMessage(formatFormData(widgetFormData), widgetFormData);
       setWidgetSubmitted(true);
       setWidgetDrawerOpen(false);
     }
