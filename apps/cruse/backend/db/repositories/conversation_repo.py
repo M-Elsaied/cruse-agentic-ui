@@ -65,9 +65,7 @@ class ConversationRepository:
     async def get_with_messages(self, conversation_id: int) -> Conversation | None:
         """Get a conversation with all its messages eagerly loaded."""
         result = await self._db.execute(
-            select(Conversation)
-            .where(Conversation.id == conversation_id)
-            .options(selectinload(Conversation.messages))
+            select(Conversation).where(Conversation.id == conversation_id).options(selectinload(Conversation.messages))
         )
         return result.scalar_one_or_none()
 
