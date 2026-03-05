@@ -14,6 +14,8 @@
 #
 # END COPYRIGHT
 
+# pylint: disable=missing-function-docstring,redefined-outer-name
+
 import os
 
 import pytest
@@ -90,6 +92,6 @@ async def test_disabled(db):
     os.environ["MAX_DAILY_REQUESTS"] = "0"
     rl = RateLimiter()
     await rl.init()
-    allowed, remaining, limit = await rl.check_and_increment("user1", "user", db)
+    allowed, remaining, _limit = await rl.check_and_increment("user1", "user", db)
     assert allowed is True
     assert remaining is None

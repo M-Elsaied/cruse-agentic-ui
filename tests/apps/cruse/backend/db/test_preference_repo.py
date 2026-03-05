@@ -14,6 +14,8 @@
 #
 # END COPYRIGHT
 
+# pylint: disable=missing-function-docstring
+
 import pytest
 
 from apps.cruse.backend.db.repositories.preference_repo import PreferenceRepository

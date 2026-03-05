@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_DATABASE_URL = "postgresql+asyncpg://cruse:cruse@localhost:5432/cruse"
 
-_engine = None  # pylint: disable=invalid-name
-_session_factory: async_sessionmaker[AsyncSession] | None = None  # pylint: disable=invalid-name
+_engine = None  # pylint: disable=invalid-name,useless-suppression
+_session_factory: async_sessionmaker[AsyncSession] | None = None  # pylint: disable=invalid-name,useless-suppression
 
 
 async def init_db() -> None:

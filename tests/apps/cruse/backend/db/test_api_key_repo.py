@@ -14,6 +14,8 @@
 #
 # END COPYRIGHT
 
+# pylint: disable=missing-function-docstring
+
 import os
 
 import pytest

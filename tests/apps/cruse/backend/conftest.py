@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 
 # Import all models so metadata is fully populated
-import apps.cruse.backend.db.models  # noqa: F401
+import apps.cruse.backend.db.models  # noqa: F401  # pylint: disable=unused-import
 from apps.cruse.backend.db.base import Base
 
 TEST_DATABASE_URL = os.environ.get(
@@ -42,7 +42,7 @@ async def engine():
 
 
 @pytest_asyncio.fixture
-async def db(engine):
+async def db(engine):  # pylint: disable=redefined-outer-name
     """Each test gets a session wrapped in a transaction that rolls back."""
     async with engine.connect() as conn:
         trans = await conn.begin()

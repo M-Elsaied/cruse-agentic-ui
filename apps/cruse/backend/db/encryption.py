@@ -22,7 +22,7 @@ from cryptography.fernet import InvalidToken
 
 logger = logging.getLogger(__name__)
 
-_fernet: Fernet | None = None  # pylint: disable=invalid-name
+_fernet: Fernet | None = None  # pylint: disable=invalid-name,useless-suppression
 
 
 def _get_fernet() -> Fernet:

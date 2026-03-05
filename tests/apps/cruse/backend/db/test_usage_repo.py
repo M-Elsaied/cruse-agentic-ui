@@ -14,6 +14,8 @@
 #
 # END COPYRIGHT
 
+# pylint: disable=missing-function-docstring
+
 from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
