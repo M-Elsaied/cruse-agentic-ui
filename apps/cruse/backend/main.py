@@ -25,12 +25,17 @@ from fastapi import Query
 from fastapi import WebSocket
 from fastapi import WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from apps.cruse.backend.auth import ClerkUser
 from apps.cruse.backend.auth import clerk_verifier
 from apps.cruse.backend.auth import get_current_user
 from apps.cruse.backend.auth import require_admin
 from apps.cruse.backend.auth import verify_ws_token
+from apps.cruse.backend.db.engine import dispose_db
+from apps.cruse.backend.db.engine import get_session_factory
+from apps.cruse.backend.db.engine import init_db
+from apps.cruse.backend.db.repositories.user_repo import UserRepository
 from apps.cruse.backend.log_capture import LogRingBuffer
 from apps.cruse.backend.models import ChatMessage
 from apps.cruse.backend.models import ServerEventType
@@ -88,7 +93,17 @@ rate_limiter = RateLimiter()
 @app.get("/api/health")
 async def health_check():
     """Unauthenticated health check for load balancers and Docker."""
-    return {"status": "healthy"}
+    db_status = "connected"
+    try:
+        factory = get_session_factory()
+        if factory is not None:
+            async with factory() as session:
+                await session.execute(text("SELECT 1"))
+        else:
+            db_status = "not_initialized"
+    except Exception:  # pylint: disable=broad-exception-caught
+        db_status = "disconnected"
+    return {"status": "healthy", "database": db_status}
 
 
 @app.get("/api/systems")
@@ -218,8 +233,22 @@ async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Que
 
             timeout_manager.touch(session_id)
 
-            # Rate-limit check (admins bypass)
-            allowed, remaining, limit = await rate_limiter.check_and_increment(ws_user.user_id, ws_user.role)
+            # Rate-limit check (admins bypass) — uses DB session
+            factory = get_session_factory()
+            if factory is not None:
+                async with factory() as db:
+                    # Upsert user on every message (keeps DB in sync with Clerk)
+                    await UserRepository(db).upsert_from_clerk(
+                        ws_user.user_id, ws_user.email, ws_user.name, ws_user.role
+                    )
+                    allowed, remaining, limit = await rate_limiter.check_and_increment(
+                        ws_user.user_id, ws_user.role, db
+                    )
+                    await db.commit()
+            else:
+                # Fallback: no DB available, allow request
+                allowed, remaining, limit = True, None, None
+
             if not allowed:
                 await send_event(
                     websocket,
@@ -256,9 +285,21 @@ async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Que
 async def get_me(user: ClerkUser = Depends(get_current_user)):
     """Return the authenticated user's info including role and rate limit."""
     result: dict = {"user_id": user.user_id, "email": user.email, "role": user.role}
-    remaining, limit = rate_limiter.get_remaining(user.user_id, user.role)
-    if remaining is not None:
-        result["rate_limit"] = {"remaining": remaining, "limit": limit}
+
+    # DB operations are best-effort — if the database is unavailable
+    # we still return user info from the JWT.
+    factory = get_session_factory()
+    if factory is not None:
+        try:
+            async with factory() as db:
+                await UserRepository(db).upsert_from_clerk(user.user_id, user.email, user.name, user.role)
+                remaining, limit = await rate_limiter.get_remaining(user.user_id, user.role, db)
+                if remaining is not None:
+                    result["rate_limit"] = {"remaining": remaining, "limit": limit}
+                await db.commit()
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.exception("Database error in /api/me — returning JWT-only response")
+
     return result
 
 
@@ -303,9 +344,16 @@ async def startup():
         load_dotenv(_env_local, override=False)
 
     logger.info("CRUSE Next-Gen backend starting...")
+
+    # Initialize database
+    try:
+        await init_db()
+        logger.info("Database initialized successfully")
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.exception("Failed to initialize database — running without persistence")
+
     await clerk_verifier.init()
     await rate_limiter.init()
-    rate_limiter.start_sync_loop()
     # Attach the log ring buffer to the root logger for debug streaming
     log_buffer.setFormatter(logging.Formatter("%(message)s"))
     logging.getLogger().addHandler(log_buffer)
@@ -330,9 +378,9 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown():
-    """Clean up all sessions on shutdown."""
+    """Clean up all sessions and dispose of database connections on shutdown."""
     logger.info("CRUSE Next-Gen backend shutting down...")
-    await rate_limiter.stop()
     await timeout_manager.stop()
     for info in session_manager.list_sessions():
         session_manager.destroy_session(info["session_id"])
+    await dispose_db()
