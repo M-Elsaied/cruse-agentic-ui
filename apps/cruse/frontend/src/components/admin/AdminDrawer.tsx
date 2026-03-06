@@ -5,6 +5,7 @@ import { Close } from '@mui/icons-material';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { useCruseStore } from '@/store/cruseStore';
+import { AdminReportsPanel } from '@/components/admin/AdminReportsPanel';
 import { AdminSessionsPanel } from '@/components/admin/AdminSessionsPanel';
 import { AdminStatsPanel } from '@/components/admin/AdminStatsPanel';
 
@@ -68,6 +69,7 @@ export function AdminDrawer() {
       >
         <Tab label="Sessions" />
         <Tab label="Stats" />
+        <Tab label="Reports" />
       </Tabs>
 
       {/* Tab content */}
@@ -95,6 +97,18 @@ export function AdminDrawer() {
               style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}
             >
               <AdminStatsPanel />
+            </motion.div>
+          )}
+          {activeTab === 2 && (
+            <motion.div
+              key="reports"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.15 }}
+              style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}
+            >
+              <AdminReportsPanel />
             </motion.div>
           )}
         </AnimatePresence>

@@ -10,6 +10,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  dbId?: number;
 }
 
 export interface AgentActivity {
@@ -70,6 +71,11 @@ interface CruseState {
   historyLoading: boolean;
   viewingConversation: ConversationDetail | null;
 
+  // Feedback
+  feedbackRatings: Record<string, 1 | -1>;
+  feedbackDialogOpen: boolean;
+  feedbackTargetMessage: ChatMessage | null;
+
   // UI
   darkMode: boolean;
   pendingInput: string | null;
@@ -117,6 +123,10 @@ interface CruseState {
   setConversationHistory: (conversations: ConversationSummary[]) => void;
   setHistoryLoading: (loading: boolean) => void;
   setViewingConversation: (detail: ConversationDetail | null) => void;
+  setFeedbackRating: (messageId: string, rating: 1 | -1) => void;
+  removeFeedbackRating: (messageId: string) => void;
+  openFeedbackDialog: (message: ChatMessage | null) => void;
+  closeFeedbackDialog: () => void;
   setTourStep: (step: number) => void;
   endTour: () => void;
   reset: () => void;
@@ -153,6 +163,9 @@ const initialState = {
   conversationHistory: [],
   historyLoading: false,
   viewingConversation: null,
+  feedbackRatings: {},
+  feedbackDialogOpen: false,
+  feedbackTargetMessage: null,
   darkMode: true,
   pendingInput: null,
   widgetSubmitted: false,
@@ -230,6 +243,16 @@ export const useCruseStore = create<CruseState>((set) => ({
   setConversationHistory: (conversations) => set({ conversationHistory: conversations }),
   setHistoryLoading: (loading) => set({ historyLoading: loading }),
   setViewingConversation: (detail) => set({ viewingConversation: detail }),
+
+  setFeedbackRating: (messageId, rating) =>
+    set((state) => ({ feedbackRatings: { ...state.feedbackRatings, [messageId]: rating } })),
+  removeFeedbackRating: (messageId) =>
+    set((state) => {
+      const { [messageId]: _, ...rest } = state.feedbackRatings;
+      return { feedbackRatings: rest };
+    }),
+  openFeedbackDialog: (message) => set({ feedbackDialogOpen: true, feedbackTargetMessage: message }),
+  closeFeedbackDialog: () => set({ feedbackDialogOpen: false, feedbackTargetMessage: null }),
 
   setTourStep: (step) => set({ tourStep: step }),
   endTour: () => set({ tourActive: false, tourStep: 0 }),

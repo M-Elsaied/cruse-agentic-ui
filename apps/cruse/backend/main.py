@@ -38,6 +38,7 @@ from apps.cruse.backend.db.engine import get_db
 from apps.cruse.backend.db.engine import get_session_factory
 from apps.cruse.backend.db.engine import init_db
 from apps.cruse.backend.db.repositories.conversation_repo import ConversationRepository
+from apps.cruse.backend.db.repositories.feedback_repo import FeedbackRepository
 from apps.cruse.backend.db.repositories.message_repo import MessageRepository
 from apps.cruse.backend.db.repositories.user_repo import UserRepository
 from apps.cruse.backend.log_capture import LogRingBuffer
@@ -46,6 +47,11 @@ from apps.cruse.backend.models import ConversationDetailResponse
 from apps.cruse.backend.models import ConversationListResponse
 from apps.cruse.backend.models import ConversationSummary
 from apps.cruse.backend.models import MessageResponse
+from apps.cruse.backend.models import RatingRequest
+from apps.cruse.backend.models import RatingResponse
+from apps.cruse.backend.models import ReportListResponse
+from apps.cruse.backend.models import ReportRequest
+from apps.cruse.backend.models import ReportResponse
 from apps.cruse.backend.models import ServerEventType
 from apps.cruse.backend.models import SessionCreate
 from apps.cruse.backend.rate_limiter import RateLimiter
@@ -425,6 +431,131 @@ async def archive_conversation(
         raise HTTPException(status_code=404, detail="Conversation not found")
     await ConversationRepository(db).archive(conversation_id)
     return {"status": "archived", "conversation_id": conversation_id}
+
+
+# ─── Feedback ────────────────────────────────────────────────────
+
+
+async def _verify_message_ownership(message_id: int, user: ClerkUser, db: AsyncSession):
+    """Load a message and verify the requesting user owns the parent conversation (or is admin).
+
+    Returns 404 for both missing and unauthorized messages to prevent IDOR enumeration.
+    """
+    msg = await MessageRepository(db).get_by_id(message_id)
+    if msg is None:
+        raise HTTPException(status_code=404, detail="Message not found")
+    conv = await ConversationRepository(db).get_by_id(msg.conversation_id)
+    if conv is None or (conv.user_id != user.user_id and user.role != "admin"):
+        raise HTTPException(status_code=404, detail="Message not found")
+    return msg, conv
+
+
+@app.post("/api/messages/{message_id}/rating", response_model=RatingResponse)
+async def post_rating(
+    message_id: int,
+    body: RatingRequest,
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Add or update a thumbs up/down rating on a message."""
+    if body.rating not in (-1, 1):
+        raise HTTPException(status_code=422, detail="Rating must be -1 or 1")
+    await _verify_message_ownership(message_id, user, db)
+    fb = await FeedbackRepository(db).add_rating(message_id, user.user_id, body.rating, comment=body.comment)
+    return RatingResponse(id=fb.id, message_id=message_id, rating=fb.rating, comment=fb.comment)
+
+
+@app.delete("/api/messages/{message_id}/rating", status_code=204)
+async def delete_rating(
+    message_id: int,
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove a user's rating from a message."""
+    await _verify_message_ownership(message_id, user, db)
+    deleted = await FeedbackRepository(db).delete_rating(message_id, user.user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Rating not found")
+
+
+@app.post("/api/reports", response_model=ReportResponse)
+async def post_report(
+    body: ReportRequest,
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Submit a feedback report (bug, feature request, or general)."""
+    context: dict = {}
+    conversation_id = body.conversation_id
+    message_id = body.message_id
+
+    # Auto-attach agent trace from the referenced message (with ownership check)
+    if message_id is not None:
+        msg = await MessageRepository(db).get_by_id(message_id)
+        if msg is not None:
+            # Verify the user owns the message's conversation (or is admin)
+            conv = await ConversationRepository(db).get_by_id(msg.conversation_id)
+            if conv is None or (conv.user_id != user.user_id and user.role != "admin"):
+                raise HTTPException(status_code=403, detail="Not authorized to reference this message")
+            if msg.metadata_:
+                agent_trace = msg.metadata_.get("agent_trace")
+                if agent_trace:
+                    context["agent_trace"] = agent_trace
+            # Derive conversation_id from message if not explicitly provided
+            if conversation_id is None:
+                conversation_id = msg.conversation_id
+
+    # Enrich context from the conversation record (with ownership check)
+    if conversation_id is not None:
+        conv = await ConversationRepository(db).get_by_id(conversation_id)
+        if conv is not None:
+            if conv.user_id != user.user_id and user.role != "admin":
+                raise HTTPException(status_code=403, detail="Not authorized to reference this conversation")
+            context["agent_network"] = conv.agent_network
+            context["session_id"] = conv.session_id
+
+    report = await FeedbackRepository(db).add_report(
+        user.user_id,
+        body.body,
+        category=body.category,
+        conversation_id=conversation_id,
+        message_id=message_id,
+        context=context or None,
+    )
+    return ReportResponse(
+        id=report.id,
+        category=report.category,
+        body=report.body,
+        status=report.status,
+        created_at=report.created_at.isoformat(),
+    )
+
+
+@app.get("/api/admin/reports", response_model=ReportListResponse)
+async def admin_list_reports(
+    _user: ClerkUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+    status: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    """List feedback reports (admin only)."""
+    repo = FeedbackRepository(db)
+    reports = await repo.list_reports(status=status, limit=limit, offset=offset)
+    total = await repo.count_reports(status=status)
+    return ReportListResponse(
+        reports=[
+            ReportResponse(
+                id=r.id,
+                category=r.category,
+                body=r.body,
+                status=r.status,
+                created_at=r.created_at.isoformat(),
+            )
+            for r in reports
+        ],
+        total=total,
+    )
 
 
 # ─── Admin Endpoints ─────────────────────────────────────────────

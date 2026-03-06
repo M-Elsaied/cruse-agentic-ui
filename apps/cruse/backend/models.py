@@ -111,3 +111,45 @@ class ConversationDetailResponse(BaseModel):
 
     conversation: ConversationSummary
     messages: list[MessageResponse]
+
+
+class RatingRequest(BaseModel):
+    """Request body for thumbs up/down rating."""
+
+    rating: int = Field(..., description="1 for thumbs up, -1 for thumbs down")
+    comment: str | None = Field(None, max_length=2000)
+
+
+class RatingResponse(BaseModel):
+    """Response for a rating operation."""
+
+    id: int
+    message_id: int
+    rating: int
+    comment: str | None = None
+
+
+class ReportRequest(BaseModel):
+    """Request body for submitting a feedback report."""
+
+    body: str = Field(..., min_length=1, max_length=5000)
+    category: str = Field("bug", pattern="^(bug|feature|general)$")
+    conversation_id: int | None = None
+    message_id: int | None = None
+
+
+class ReportResponse(BaseModel):
+    """Response for a created report."""
+
+    id: int
+    category: str
+    body: str
+    status: str
+    created_at: str
+
+
+class ReportListResponse(BaseModel):
+    """Paginated list of feedback reports."""
+
+    reports: list[ReportResponse]
+    total: int

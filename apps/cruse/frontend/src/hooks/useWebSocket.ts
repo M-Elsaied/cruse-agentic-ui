@@ -48,14 +48,20 @@ export function useWebSocket() {
           appendStreamingContent(event.data as string);
           break;
 
-        case 'chat_complete':
+        case 'chat_complete': {
+          // Supports both plain string (legacy) and {content, message_id} (new) payloads
+          const payload = event.data;
+          const chatContent = typeof payload === 'string' ? payload : (payload as { content: string }).content;
+          const dbId = typeof payload === 'string' ? undefined : ((payload as { message_id?: number }).message_id ?? undefined);
           addMessage({
             id: generateId(),
             role: 'assistant',
-            content: event.data as string,
+            content: chatContent,
             timestamp: Date.now(),
+            dbId,
           });
           break;
+        }
 
         case 'widget_schema': {
           const raw = event.data as Record<string, unknown>;

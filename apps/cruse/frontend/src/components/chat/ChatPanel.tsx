@@ -9,6 +9,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github-dark-dimmed.css';
 import { useCruseStore } from '@/store/cruseStore';
+import { MessageFeedbackButtons } from '@/components/chat/MessageFeedbackButtons';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { WelcomeHero } from '@/components/landing/WelcomeHero';
 import type { ChatMessage } from '@/store/cruseStore';
@@ -47,6 +48,7 @@ export function ChatPanel() {
         role: m.role,
         content: m.content,
         timestamp: new Date(m.created_at).getTime(),
+        dbId: m.id,
       }))
     : messages;
 
@@ -206,6 +208,9 @@ export function ChatPanel() {
                   )}
                 </Box>
               </Tooltip>
+              {msg.role === 'assistant' && msg.dbId && (
+                <MessageFeedbackButtons message={msg} />
+              )}
             </Box>
           </motion.div>
         ))}

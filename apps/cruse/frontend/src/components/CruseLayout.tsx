@@ -12,6 +12,7 @@ import { WidgetCard } from '@/components/widget/WidgetCard';
 import { AgentActivityBar } from '@/components/activity/AgentActivityBar';
 import { AdminDrawer } from '@/components/admin/AdminDrawer';
 import { DebugDrawer } from '@/components/debug/DebugDrawer';
+import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
 import { HistoryDrawer } from '@/components/history/HistoryDrawer';
 import { NetworkDrawer } from '@/components/network/NetworkDrawer';
 import { BackgroundEngine } from '@/components/theme/BackgroundEngine';
@@ -204,6 +205,9 @@ export function CruseLayout() {
 
       {/* Network visualization drawer */}
       <NetworkDrawer />
+
+      {/* Feedback dialog */}
+      <FeedbackDialog />
 
       {/* Spotlight walkthrough tour */}
       <SpotlightTour />
