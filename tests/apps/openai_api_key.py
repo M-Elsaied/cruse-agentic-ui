@@ -45,7 +45,7 @@ def test_open_ai_api_key():
         print("Successful call to OpenAI")
         print(f"response: {response.choices[0].message.content}")
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print("Failed call to OpenAI. Exception:")
         print(e)
 
