@@ -24,8 +24,6 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DATABASE_URL = "postgresql+asyncpg://cruse:cruse@localhost:5432/cruse"
-
 _engine = None  # pylint: disable=invalid-name,useless-suppression
 _session_factory: async_sessionmaker[AsyncSession] | None = None  # pylint: disable=invalid-name,useless-suppression
 
@@ -33,11 +31,15 @@ _session_factory: async_sessionmaker[AsyncSession] | None = None  # pylint: disa
 async def init_db() -> None:
     """Create the async engine and session factory.
 
-    Call once during application startup.
+    Call once during application startup.  Requires the ``DATABASE_URL``
+    environment variable to be set — raises ``RuntimeError`` if missing
+    to prevent silent fallback to hardcoded credentials.
     """
     global _engine, _session_factory  # noqa: PLW0603  # pylint: disable=global-statement
 
-    database_url = os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL)
+    database_url = os.environ.get("DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("DATABASE_URL environment variable is required but not set")
     pool_size = int(os.environ.get("DB_POOL_SIZE", "5"))
     max_overflow = int(os.environ.get("DB_MAX_OVERFLOW", "10"))
 

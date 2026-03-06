@@ -50,7 +50,12 @@ class User(Base):
     name: Mapped[str | None] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(50), nullable=False, server_default="user")
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),  # pylint: disable=not-callable
+    )
 
 
 class DailyUsage(Base):
@@ -86,7 +91,12 @@ class ApiKey(Base):
     label: Mapped[str | None] = mapped_column(String(255))
     is_valid: Mapped[bool] = mapped_column(Boolean, server_default="true")
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),  # pylint: disable=not-callable
+    )
 
 
 class UserPreference(Base):
@@ -98,7 +108,12 @@ class UserPreference(Base):
     preferred_provider: Mapped[str | None] = mapped_column(String(50))
     preferred_model: Mapped[str | None] = mapped_column(String(100))
     settings: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),  # pylint: disable=not-callable
+    )
 
 
 class Conversation(Base):
@@ -117,7 +132,12 @@ class Conversation(Base):
     title: Mapped[str | None] = mapped_column(String(500))
     is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),  # pylint: disable=not-callable
+    )
 
     messages: Mapped[list["Message"]] = relationship("Message", back_populates="conversation", cascade="all, delete")
 
