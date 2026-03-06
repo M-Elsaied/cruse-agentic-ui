@@ -26,6 +26,7 @@ from fastapi import WebSocket
 from fastapi import WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.cruse.backend.auth import ClerkUser
 from apps.cruse.backend.auth import clerk_verifier
@@ -33,11 +34,18 @@ from apps.cruse.backend.auth import get_current_user
 from apps.cruse.backend.auth import require_admin
 from apps.cruse.backend.auth import verify_ws_token
 from apps.cruse.backend.db.engine import dispose_db
+from apps.cruse.backend.db.engine import get_db
 from apps.cruse.backend.db.engine import get_session_factory
 from apps.cruse.backend.db.engine import init_db
+from apps.cruse.backend.db.repositories.conversation_repo import ConversationRepository
+from apps.cruse.backend.db.repositories.message_repo import MessageRepository
 from apps.cruse.backend.db.repositories.user_repo import UserRepository
 from apps.cruse.backend.log_capture import LogRingBuffer
 from apps.cruse.backend.models import ChatMessage
+from apps.cruse.backend.models import ConversationDetailResponse
+from apps.cruse.backend.models import ConversationListResponse
+from apps.cruse.backend.models import ConversationSummary
+from apps.cruse.backend.models import MessageResponse
 from apps.cruse.backend.models import ServerEventType
 from apps.cruse.backend.models import SessionCreate
 from apps.cruse.backend.rate_limiter import RateLimiter
@@ -127,6 +135,20 @@ async def create_session(body: SessionCreate, user: ClerkUser = Depends(get_curr
     try:
         session_id = session_manager.create_session(body.agent_network, user.user_id)
         timeout_manager.touch(session_id)
+
+        # Best-effort: create conversation record in DB
+        factory = get_session_factory()
+        if factory is not None:
+            try:
+                async with factory() as db:
+                    conv = await ConversationRepository(db).create(session_id, user.user_id, body.agent_network)
+                    await db.commit()
+                    cruse_session = session_manager.get_session(session_id)
+                    if cruse_session:
+                        cruse_session.conversation_id = conv.id
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.exception("Failed to create conversation record for session %s", session_id)
+
         theme = get_theme_for_network(body.agent_network)
         sample_queries = get_sample_queries_for_network(body.agent_network)
         return {
@@ -184,7 +206,7 @@ async def get_network_connectivity(agent_network: str, _user: ClerkUser = Depend
 
 
 @app.websocket("/ws/chat/{session_id}")
-async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Query(None)):  # pylint: disable=too-many-branches
+async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Query(None)):  # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     """WebSocket endpoint for real-time chat with a CRUSE session.
 
     Protocol:
@@ -266,6 +288,25 @@ async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Que
                     {"allowed": True, "remaining": remaining, "limit": limit},
                 )
 
+            # Best-effort: save user message to DB
+            if cruse_session.conversation_id is not None and factory is not None:
+                try:
+                    async with factory() as msg_db:
+                        user_metadata = {}
+                        if msg.form_data:
+                            user_metadata["form_data"] = msg.form_data
+                        await MessageRepository(msg_db).append(
+                            cruse_session.conversation_id, "user", user_input, metadata=user_metadata or None
+                        )
+                        if cruse_session.message_count == 0:
+                            # Use original text (not augmented user_input) for clean titles
+                            title_src = str(msg.text).strip()
+                            title = title_src[:80].rsplit(" ", 1)[0] if len(title_src) > 80 else title_src
+                            await ConversationRepository(msg_db).update_title(cruse_session.conversation_id, title)
+                        await msg_db.commit()
+                except Exception:  # pylint: disable=broad-exception-caught
+                    logger.exception("Failed to save user message")
+
             await process_chat_message(websocket, cruse_session, user_input, log_buffer)
 
     except WebSocketDisconnect:
@@ -301,6 +342,89 @@ async def get_me(user: ClerkUser = Depends(get_current_user)):
             logger.exception("Database error in /api/me — returning JWT-only response")
 
     return result
+
+
+# ─── Conversation History ────────────────────────────────────────
+
+
+@app.get("/api/conversations")
+async def list_conversations(
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    include_archived: bool = Query(False),
+):
+    """List the authenticated user's conversations, most recent first."""
+    rows = await ConversationRepository(db).list_with_counts(
+        user.user_id, include_archived=include_archived, limit=limit + 1, offset=offset
+    )
+    has_more = len(rows) > limit
+    if has_more:
+        rows = rows[:limit]
+    conversations = [
+        ConversationSummary(
+            id=conv.id,
+            session_id=conv.session_id,
+            agent_network=conv.agent_network,
+            title=conv.title,
+            is_archived=conv.is_archived,
+            created_at=conv.created_at.isoformat(),
+            updated_at=conv.updated_at.isoformat(),
+            message_count=msg_count,
+        )
+        for conv, msg_count in rows
+    ]
+    return ConversationListResponse(conversations=conversations, total=len(conversations), has_more=has_more)
+
+
+@app.get("/api/conversations/{conversation_id}")
+async def get_conversation(
+    conversation_id: int,
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a conversation with all its messages."""
+    conv = await ConversationRepository(db).get_with_messages(conversation_id)
+    if conv is None or (conv.user_id != user.user_id and user.role != "admin"):
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    # Filter out internal metadata (agent traces, latency) — only expose user-facing data
+    _internal_keys = {"agent_trace", "latency_ms"}
+    messages = [
+        MessageResponse(
+            id=m.id,
+            role=m.role,
+            content=m.content,
+            metadata={k: v for k, v in (m.metadata_ or {}).items() if k not in _internal_keys},
+            created_at=m.created_at.isoformat(),
+        )
+        for m in conv.messages
+    ]
+    summary = ConversationSummary(
+        id=conv.id,
+        session_id=conv.session_id,
+        agent_network=conv.agent_network,
+        title=conv.title,
+        is_archived=conv.is_archived,
+        created_at=conv.created_at.isoformat(),
+        updated_at=conv.updated_at.isoformat(),
+        message_count=len(messages),
+    )
+    return ConversationDetailResponse(conversation=summary, messages=messages)
+
+
+@app.delete("/api/conversations/{conversation_id}")
+async def archive_conversation(
+    conversation_id: int,
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Archive (soft-delete) a conversation."""
+    conv = await ConversationRepository(db).get_by_id(conversation_id)
+    if conv is None or (conv.user_id != user.user_id and user.role != "admin"):
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    await ConversationRepository(db).archive(conversation_id)
+    return {"status": "archived", "conversation_id": conversation_id}
 
 
 # ─── Admin Endpoints ─────────────────────────────────────────────
