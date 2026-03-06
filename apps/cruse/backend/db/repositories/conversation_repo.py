@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from apps.cruse.backend.db.models import Conversation
+from apps.cruse.backend.db.models import Message
 
 
 class ConversationRepository:
@@ -86,3 +87,28 @@ class ConversationRepository:
         )
         await self._db.flush()
         return result.rowcount > 0
+
+    async def list_with_counts(
+        self,
+        user_id: str,
+        *,
+        include_archived: bool = False,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list:
+        """List conversations with message counts, most recent first."""
+        count_subq = (
+            select(Message.conversation_id, func.count(Message.id).label("msg_count"))  # pylint: disable=not-callable
+            .group_by(Message.conversation_id)
+            .subquery()
+        )
+        stmt = (
+            select(Conversation, func.coalesce(count_subq.c.msg_count, 0).label("message_count"))
+            .outerjoin(count_subq, Conversation.id == count_subq.c.conversation_id)
+            .where(Conversation.user_id == user_id)
+        )
+        if not include_archived:
+            stmt = stmt.where(Conversation.is_archived.is_(False))
+        stmt = stmt.order_by(Conversation.updated_at.desc()).limit(limit).offset(offset)
+        result = await self._db.execute(stmt)
+        return [(row[0], row[1]) for row in result.all()]
