@@ -267,6 +267,7 @@ class CruseSession:  # pylint: disable=too-many-instance-attributes
         self._initialized = False
         self._init_lock = threading.Lock()
         self._init_error: Exception | None = None
+        self.conversation_id: int | None = None
         self.debug_processor = DebugMessageProcessor()
 
     def start_eager_init(self):
