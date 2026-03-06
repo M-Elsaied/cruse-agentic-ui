@@ -153,3 +153,76 @@ class ReportListResponse(BaseModel):
 
     reports: list[ReportResponse]
     total: int
+
+
+# ─── Analytics Models ─────────────────────────────────────────
+
+
+class AnalyticsOverview(BaseModel):
+    """KPI overview with period-over-period comparison."""
+
+    total_requests: int
+    unique_users: int
+    avg_latency_ms: float
+    error_count: int
+    error_rate: float
+    satisfaction_score: float
+    open_reports: int
+    period_days: int
+    prev_total_requests: int
+    prev_unique_users: int
+    prev_error_rate: float
+
+
+class TimeSeriesPoint(BaseModel):
+    """A single data point in a time series."""
+
+    date: str
+    count: int
+    error_count: int = 0
+
+
+class ActiveUsersPoint(BaseModel):
+    """DAU data point."""
+
+    date: str
+    count: int
+
+
+class NetworkScorecard(BaseModel):
+    """Per-network quality scorecard combining multiple data sources."""
+
+    network: str
+    request_count: int
+    avg_latency_ms: float
+    error_rate: float
+    satisfaction_score: float
+    avg_depth: float
+
+
+class AnalyticsResponse(BaseModel):
+    """Main analytics dashboard payload."""
+
+    overview: AnalyticsOverview
+    requests_over_time: list[TimeSeriesPoint]
+    active_users_over_time: list[ActiveUsersPoint]
+    network_scorecard: list[NetworkScorecard]
+
+
+class UserBreakdown(BaseModel):
+    """Per-user analytics row."""
+
+    user_id: str
+    email: str | None = None
+    name: str | None = None
+    request_count: int
+    conversation_count: int
+    avg_latency_ms: float
+    last_active: str | None = None
+
+
+class UserBreakdownResponse(BaseModel):
+    """Paginated user breakdown response."""
+
+    users: list[UserBreakdown]
+    total: int
