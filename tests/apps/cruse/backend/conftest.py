@@ -36,14 +36,13 @@ async def engine():
     """Create an async engine for each test. Tables are created once and
     each test's transaction is rolled back, so there is no cross-test pollution.
 
-    Skips the test if PostgreSQL is not reachable.
+    Skips the test if PostgreSQL is not reachable or asyncpg is not installed.
     """
-    eng = create_async_engine(TEST_DATABASE_URL, echo=False)
     try:
+        eng = create_async_engine(TEST_DATABASE_URL, echo=False)
         async with eng.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
     except Exception as exc:  # pylint: disable=broad-exception-caught
-        await eng.dispose()
         pytest.skip(f"PostgreSQL not available: {exc}")
     yield eng
     await eng.dispose()
