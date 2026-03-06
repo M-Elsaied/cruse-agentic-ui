@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { AgentTraceEntry, ServerLogEntry } from '@/types/debug';
+import type { ConversationDetail, ConversationSummary } from '@/types/history';
 import type { ConnectivityData } from '@/types/network';
 import type { BackgroundTheme } from '@/types/theme';
 import type { WidgetCardDefinition } from '@/types/widget';
@@ -63,6 +64,12 @@ interface CruseState {
   rateLimitTotal: number | null;
   rateLimitExceeded: boolean;
 
+  // History
+  historyDrawerOpen: boolean;
+  conversationHistory: ConversationSummary[];
+  historyLoading: boolean;
+  viewingConversation: ConversationDetail | null;
+
   // UI
   darkMode: boolean;
   pendingInput: string | null;
@@ -106,6 +113,10 @@ interface CruseState {
   setWidgetDrawerOpen: (open: boolean) => void;
   setRateLimit: (remaining: number | null, limit: number | null) => void;
   setRateLimitExceeded: (exceeded: boolean) => void;
+  toggleHistoryDrawer: () => void;
+  setConversationHistory: (conversations: ConversationSummary[]) => void;
+  setHistoryLoading: (loading: boolean) => void;
+  setViewingConversation: (detail: ConversationDetail | null) => void;
   setTourStep: (step: number) => void;
   endTour: () => void;
   reset: () => void;
@@ -138,6 +149,10 @@ const initialState = {
   rateLimitRemaining: null,
   rateLimitTotal: null,
   rateLimitExceeded: false,
+  historyDrawerOpen: false,
+  conversationHistory: [],
+  historyLoading: false,
+  viewingConversation: null,
   darkMode: true,
   pendingInput: null,
   widgetSubmitted: false,
@@ -209,6 +224,12 @@ export const useCruseStore = create<CruseState>((set) => ({
 
   setRateLimit: (remaining, limit) => set({ rateLimitRemaining: remaining, rateLimitTotal: limit }),
   setRateLimitExceeded: (exceeded) => set({ rateLimitExceeded: exceeded }),
+
+  toggleHistoryDrawer: () =>
+    set((state) => ({ historyDrawerOpen: !state.historyDrawerOpen })),
+  setConversationHistory: (conversations) => set({ conversationHistory: conversations }),
+  setHistoryLoading: (loading) => set({ historyLoading: loading }),
+  setViewingConversation: (detail) => set({ viewingConversation: detail }),
 
   setTourStep: (step) => set({ tourStep: step }),
   endTour: () => set({ tourActive: false, tourStep: 0 }),
