@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Box, Typography, Avatar, Tooltip, Chip } from '@mui/material';
+import { Box, Button, Typography, Avatar, Tooltip, Chip } from '@mui/material';
 import { SmartToy, Person } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
@@ -11,6 +11,7 @@ import 'highlight.js/styles/github-dark-dimmed.css';
 import { useCruseStore } from '@/store/cruseStore';
 import { TypingIndicator } from '@/components/chat/TypingIndicator';
 import { WelcomeHero } from '@/components/landing/WelcomeHero';
+import type { ChatMessage } from '@/store/cruseStore';
 
 function formatTimestamp(ts: number): string {
   const diff = Math.floor((Date.now() - ts) / 1000);
@@ -28,6 +29,8 @@ export function ChatPanel() {
   const sessionId = useCruseStore((s) => s.sessionId);
   const sampleQueries = useCruseStore((s) => s.sampleQueries);
   const setPendingInput = useCruseStore((s) => s.setPendingInput);
+  const viewingConversation = useCruseStore((s) => s.viewingConversation);
+  const setViewingConversation = useCruseStore((s) => s.setViewingConversation);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new messages
@@ -37,7 +40,17 @@ export function ChatPanel() {
     }
   }, [messages, streamingContent, isStreaming]);
 
-  if (!sessionId) {
+  // Convert history messages to ChatMessage format for rendering
+  const displayMessages: ChatMessage[] = viewingConversation
+    ? viewingConversation.messages.map((m) => ({
+        id: String(m.id),
+        role: m.role,
+        content: m.content,
+        timestamp: new Date(m.created_at).getTime(),
+      }))
+    : messages;
+
+  if (!sessionId && !viewingConversation) {
     return <WelcomeHero />;
   }
 
@@ -53,7 +66,33 @@ export function ChatPanel() {
         gap: 2,
       }}
     >
-      {messages.length === 0 && !isStreaming && (
+      {/* History viewing banner */}
+      {viewingConversation && (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1,
+            py: 1,
+            px: 2,
+            borderRadius: 2,
+            bgcolor: darkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.06)',
+            border: '1px solid',
+            borderColor: darkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.15)',
+          }}
+        >
+          <Typography variant="body2" sx={{ opacity: 0.7 }}>
+            Viewing conversation from{' '}
+            {new Date(viewingConversation.conversation.created_at).toLocaleDateString()}
+          </Typography>
+          <Button size="small" variant="text" onClick={() => setViewingConversation(null)}>
+            Back to current chat
+          </Button>
+        </Box>
+      )}
+
+      {displayMessages.length === 0 && !isStreaming && !viewingConversation && (
         <Box
           sx={{
             flex: 1,
@@ -108,7 +147,7 @@ export function ChatPanel() {
       )}
 
       <AnimatePresence initial={false}>
-        {messages.map((msg) => (
+        {displayMessages.map((msg) => (
           <motion.div
             key={msg.id}
             initial={{ opacity: 0, y: 16 }}
@@ -172,8 +211,8 @@ export function ChatPanel() {
         ))}
       </AnimatePresence>
 
-      {/* Streaming content */}
-      {isStreaming && streamingContent && (
+      {/* Streaming content — hidden when viewing history */}
+      {!viewingConversation && isStreaming && streamingContent && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main', fontSize: 16 }}>
@@ -200,7 +239,7 @@ export function ChatPanel() {
       )}
 
       {/* Typing indicator */}
-      {isStreaming && !streamingContent && <TypingIndicator />}
+      {!viewingConversation && isStreaming && !streamingContent && <TypingIndicator />}
     </Box>
   );
 }

@@ -31,7 +31,7 @@ class SessionCreate(BaseModel):
 class ChatMessage(BaseModel):
     """A chat message sent from the client."""
 
-    text: str = Field(..., description="The user's message text")
+    text: str = Field(..., max_length=10000, description="The user's message text")
     form_data: Optional[dict[str, Any]] = Field(None, description="Optional form data from widget submission")
 
 
@@ -73,3 +73,41 @@ class AdminStats(BaseModel):
     total_messages: int
     sessions_by_user: dict[str, int]
     sessions_by_network: dict[str, int]
+
+
+class MessageResponse(BaseModel):
+    """A persisted message in a conversation."""
+
+    id: int
+    role: str
+    content: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: str
+
+
+class ConversationSummary(BaseModel):
+    """Summary of a conversation for list views."""
+
+    id: int
+    session_id: str
+    agent_network: str
+    title: str | None = None
+    is_archived: bool = False
+    created_at: str
+    updated_at: str
+    message_count: int = 0
+
+
+class ConversationListResponse(BaseModel):
+    """Paginated list of conversations."""
+
+    conversations: list[ConversationSummary]
+    total: int
+    has_more: bool
+
+
+class ConversationDetailResponse(BaseModel):
+    """Full conversation with messages."""
+
+    conversation: ConversationSummary
+    messages: list[MessageResponse]

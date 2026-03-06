@@ -47,6 +47,7 @@ export function InputBar() {
   const rateLimitRemaining = useCruseStore((s) => s.rateLimitRemaining);
   const rateLimitTotal = useCruseStore((s) => s.rateLimitTotal);
   const rateLimitExceeded = useCruseStore((s) => s.rateLimitExceeded);
+  const viewingHistory = useCruseStore((s) => s.viewingConversation) !== null;
   const { sendMessage } = useWebSocket();
 
   // Handle pending input from sample query chips
@@ -149,18 +150,20 @@ export function InputBar() {
           multiline
           maxRows={4}
           placeholder={
-            rateLimitExceeded
-              ? 'Daily request limit reached. Please try again tomorrow.'
-              : sessionId
-                ? hasFormData
-                  ? 'Add a message (optional) and press Send to submit the form...'
-                  : 'Type your message...'
-                : 'Select an agent network first'
+            viewingHistory
+              ? 'Viewing history — start a new chat to send messages'
+              : rateLimitExceeded
+                ? 'Daily request limit reached. Please try again tomorrow.'
+                : sessionId
+                  ? hasFormData
+                    ? 'Add a message (optional) and press Send to submit the form...'
+                    : 'Type your message...'
+                  : 'Select an agent network first'
           }
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={!sessionId || isStreaming || rateLimitExceeded}
+          disabled={!sessionId || isStreaming || rateLimitExceeded || viewingHistory}
           sx={{
             '& .MuiOutlinedInput-root': {
               borderRadius: 3,
@@ -171,7 +174,7 @@ export function InputBar() {
       <IconButton
         color="primary"
         onClick={handleSend}
-        disabled={(!input.trim() && !hasFormData) || isStreaming || !sessionId || rateLimitExceeded}
+        disabled={(!input.trim() && !hasFormData) || isStreaming || !sessionId || rateLimitExceeded || viewingHistory}
         sx={{
           bgcolor: 'primary.main',
           color: 'white',

@@ -210,9 +210,11 @@ class RequestLog(Base):
     conversation_id: Mapped[int | None] = mapped_column(
         BigInteger, ForeignKey("conversations.id", ondelete="SET NULL")
     )
+    message_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("messages.id", ondelete="SET NULL"))
     agent_network: Mapped[str] = mapped_column(String(255), nullable=False)
     model: Mapped[str | None] = mapped_column(String(100))
     prompt_tokens: Mapped[int | None] = mapped_column(Integer)
     completion_tokens: Mapped[int | None] = mapped_column(Integer)
     latency_ms: Mapped[int | None] = mapped_column(Integer)
+    is_error: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())

@@ -38,14 +38,22 @@ async def send_event(websocket: WebSocket, event_type: ServerEventType, data=Non
     await websocket.send_json({"type": event_type.value, "data": data})
 
 
-async def _drain_debug_events(websocket: WebSocket, cruse_session: CruseSession, log_buffer: LogRingBuffer | None):
+async def _drain_debug_events(
+    websocket: WebSocket,
+    cruse_session: CruseSession,
+    log_buffer: LogRingBuffer | None,
+    trace_entries: list | None = None,
+):
     """Drain debug processor and log buffer queues and emit events over WebSocket.
 
     :param websocket: The WebSocket connection.
     :param cruse_session: The active CRUSE session (has debug_processor).
     :param log_buffer: Optional log ring buffer to drain.
+    :param trace_entries: If provided, also accumulate trace entries for DB persistence.
     """
     for entry in cruse_session.debug_processor.drain():
+        if trace_entries is not None:
+            trace_entries.append(entry)
         await send_event(websocket, ServerEventType.AGENT_TRACE, entry)
     if log_buffer is not None:
         for entry in log_buffer.drain():
@@ -71,11 +79,13 @@ async def process_chat_message(
     """
     await send_event(websocket, ServerEventType.AGENT_ACTIVITY, {"status": "thinking", "agents": ["cruse"]})
 
+    trace_entries: list = []  # Accumulate agent traces for DB persistence
+    t_bridge_start = time.time()
+
     try:
         # Run the synchronous chat call in a thread pool.
         # Send periodic keepalive pings and drain debug queues every 2 seconds
         # to provide real-time visibility during long agent processing chains.
-        t_bridge_start = time.time()
         print("[TIMING] process_chat_message: dispatching to thread pool", flush=True)
         chat_task = asyncio.ensure_future(asyncio.to_thread(cruse_session.chat, user_input))
 
@@ -86,7 +96,7 @@ async def process_chat_message(
             elapsed = time.time() - t_bridge_start
             print(f"[TIMING] poll #{poll_count}, elapsed={elapsed:.1f}s, task.done={chat_task.done()}", flush=True)
             if not chat_task.done():
-                await _drain_debug_events(websocket, cruse_session, log_buffer)
+                await _drain_debug_events(websocket, cruse_session, log_buffer, trace_entries)
                 await send_event(
                     websocket,
                     ServerEventType.AGENT_ACTIVITY,
@@ -94,10 +104,11 @@ async def process_chat_message(
                 )
 
         response = chat_task.result()
-        print(f"[TIMING] process_chat_message: chat completed in {time.time() - t_bridge_start:.2f}s", flush=True)
+        latency_ms = int((time.time() - t_bridge_start) * 1000)
+        print(f"[TIMING] process_chat_message: chat completed in {latency_ms}ms", flush=True)
 
         # Final drain to catch any remaining debug messages
-        await _drain_debug_events(websocket, cruse_session, log_buffer)
+        await _drain_debug_events(websocket, cruse_session, log_buffer, trace_entries)
 
         if not response:
             await send_event(websocket, ServerEventType.ERROR, {"message": "No response from agent"})
@@ -106,6 +117,9 @@ async def process_chat_message(
 
         # Parse the response into structured blocks
         blocks = parse_response_blocks(response)
+
+        # Best-effort: save assistant message + request log to DB
+        await _persist_response(cruse_session, response, trace_entries, latency_ms)
 
         for kind, content in blocks:
             if kind == "say":
@@ -119,5 +133,68 @@ async def process_chat_message(
     except Exception:  # pylint: disable=broad-exception-caught
         logger.exception("Error processing chat message")
         await send_event(websocket, ServerEventType.ERROR, {"message": "An error occurred processing your message"})
+        # Best-effort: log the error request
+        await _persist_error(cruse_session, t_bridge_start)
 
     await send_event(websocket, ServerEventType.DONE)
+
+
+async def _persist_response(cruse_session: CruseSession, response: str, trace_entries: list, latency_ms: int):
+    """Best-effort: save assistant message and request log to the database."""
+    if cruse_session.conversation_id is None:
+        return
+    try:
+        from apps.cruse.backend.db.engine import get_session_factory  # pylint: disable=import-outside-toplevel
+        from apps.cruse.backend.db.repositories.message_repo import (  # pylint: disable=import-outside-toplevel
+            MessageRepository,
+        )
+        from apps.cruse.backend.db.repositories.request_log_repo import (  # pylint: disable=import-outside-toplevel
+            RequestLogRepository,
+        )
+
+        factory = get_session_factory()
+        if factory is None:
+            return
+        async with factory() as db:
+            metadata = {"latency_ms": latency_ms}
+            if trace_entries:
+                metadata["agent_trace"] = trace_entries
+            msg = await MessageRepository(db).append(
+                cruse_session.conversation_id, "assistant", response, metadata=metadata
+            )
+            await RequestLogRepository(db).log_request(
+                user_id=cruse_session.user_id,
+                agent_network=cruse_session.agent_network,
+                conversation_id=cruse_session.conversation_id,
+                message_id=msg.id,
+                latency_ms=latency_ms,
+            )
+            await db.commit()
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.exception("Failed to persist assistant response")
+
+
+async def _persist_error(cruse_session: CruseSession, t_bridge_start: float):
+    """Best-effort: log a failed request to the database."""
+    if cruse_session.conversation_id is None:
+        return
+    try:
+        from apps.cruse.backend.db.engine import get_session_factory  # pylint: disable=import-outside-toplevel
+        from apps.cruse.backend.db.repositories.request_log_repo import (  # pylint: disable=import-outside-toplevel
+            RequestLogRepository,
+        )
+
+        factory = get_session_factory()
+        if factory is None:
+            return
+        async with factory() as db:
+            await RequestLogRepository(db).log_request(
+                user_id=cruse_session.user_id,
+                agent_network=cruse_session.agent_network,
+                conversation_id=cruse_session.conversation_id,
+                is_error=True,
+                latency_ms=int((time.time() - t_bridge_start) * 1000),
+            )
+            await db.commit()
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.exception("Failed to log error request")
