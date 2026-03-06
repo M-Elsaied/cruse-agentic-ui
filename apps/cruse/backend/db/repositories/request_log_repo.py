@@ -35,20 +35,24 @@ class RequestLogRepository:
         agent_network: str,
         *,
         conversation_id: int | None = None,
+        message_id: int | None = None,
         model: str | None = None,
         prompt_tokens: int | None = None,
         completion_tokens: int | None = None,
         latency_ms: int | None = None,
+        is_error: bool = False,
     ) -> RequestLog:
         """Record a single request for analytics."""
         entry = RequestLog(
             user_id=user_id,
             agent_network=agent_network,
             conversation_id=conversation_id,
+            message_id=message_id,
             model=model,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             latency_ms=latency_ms,
+            is_error=is_error,
         )
         self._db.add(entry)
         await self._db.flush()
