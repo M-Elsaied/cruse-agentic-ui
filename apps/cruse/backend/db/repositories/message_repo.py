@@ -45,6 +45,11 @@ class MessageRepository:
         await self._db.flush()
         return message
 
+    async def get_by_id(self, message_id: int) -> Message | None:
+        """Get a single message by ID."""
+        result = await self._db.execute(select(Message).where(Message.id == message_id))
+        return result.scalar_one_or_none()
+
     async def list_by_conversation(self, conversation_id: int, *, limit: int = 100, offset: int = 0) -> list[Message]:
         """List messages for a conversation in chronological order."""
         result = await self._db.execute(
