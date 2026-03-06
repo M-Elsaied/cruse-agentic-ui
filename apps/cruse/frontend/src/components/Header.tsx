@@ -27,6 +27,7 @@ import {
   DarkMode,
   LightMode,
   Add as AddIcon,
+  History as HistoryIcon,
   Hub as HubIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material';
@@ -61,6 +62,9 @@ export function Header() {
   const toggleAdminDrawer = useCruseStore((s) => s.toggleAdminDrawer);
   const networkDrawerOpen = useCruseStore((s) => s.networkDrawerOpen);
   const toggleNetworkDrawer = useCruseStore((s) => s.toggleNetworkDrawer);
+  const historyDrawerOpen = useCruseStore((s) => s.historyDrawerOpen);
+  const toggleHistoryDrawer = useCruseStore((s) => s.toggleHistoryDrawer);
+  const setViewingConversation = useCruseStore((s) => s.setViewingConversation);
   const { authFetch, API_BASE } = useAuthenticatedFetch();
 
   const createSession = useCallback(
@@ -105,6 +109,7 @@ export function Header() {
 
   const handleNewChat = () => {
     if (agentNetwork) {
+      setViewingConversation(null);
       createSession(agentNetwork);
     }
   };
@@ -213,6 +218,12 @@ export function Header() {
             New Chat
           </Button>
 
+          <Tooltip title={historyDrawerOpen ? 'Close history' : 'Conversation history'}>
+            <IconButton onClick={toggleHistoryDrawer} size="small">
+              <HistoryIcon sx={{ color: historyDrawerOpen ? '#3b82f6' : undefined }} />
+            </IconButton>
+          </Tooltip>
+
           <Tooltip title={networkDrawerOpen ? 'Close network view' : 'View agent network'}>
             <span>
               <IconButton onClick={toggleNetworkDrawer} size="small" disabled={!agentNetwork}>
@@ -283,6 +294,10 @@ export function Header() {
             >
               <ListItemIcon><AddIcon fontSize="small" /></ListItemIcon>
               <ListItemText>New Chat</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={() => { toggleHistoryDrawer(); setMobileMenuAnchor(null); }}>
+              <ListItemIcon><HistoryIcon fontSize="small" /></ListItemIcon>
+              <ListItemText>History</ListItemText>
             </MenuItem>
             <MenuItem
               onClick={() => { toggleNetworkDrawer(); setMobileMenuAnchor(null); }}
