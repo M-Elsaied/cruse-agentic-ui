@@ -118,12 +118,17 @@ async def process_chat_message(
         # Parse the response into structured blocks
         blocks = parse_response_blocks(response)
 
-        # Best-effort: save assistant message + request log to DB
-        await _persist_response(cruse_session, response, trace_entries, latency_ms)
+        # Best-effort: save assistant message + request log to DB (before emitting events
+        # so we can include the DB message ID in the chat_complete payload for feedback)
+        saved_message_id = await _persist_response(cruse_session, response, trace_entries, latency_ms)
 
         for kind, content in blocks:
             if kind == "say":
-                await send_event(websocket, ServerEventType.CHAT_COMPLETE, content)
+                await send_event(
+                    websocket,
+                    ServerEventType.CHAT_COMPLETE,
+                    {"content": content, "message_id": saved_message_id},
+                )
             elif kind == "gui_json":
                 await send_event(websocket, ServerEventType.WIDGET_SCHEMA, content)
             elif kind == "gui_html":
@@ -139,10 +144,15 @@ async def process_chat_message(
     await send_event(websocket, ServerEventType.DONE)
 
 
-async def _persist_response(cruse_session: CruseSession, response: str, trace_entries: list, latency_ms: int):
-    """Best-effort: save assistant message and request log to the database."""
+async def _persist_response(
+    cruse_session: CruseSession, response: str, trace_entries: list, latency_ms: int
+) -> int | None:
+    """Best-effort: save assistant message and request log to the database.
+
+    Returns the saved message's DB id, or None if persistence failed.
+    """
     if cruse_session.conversation_id is None:
-        return
+        return None
     try:
         from apps.cruse.backend.db.engine import get_session_factory  # pylint: disable=import-outside-toplevel
         from apps.cruse.backend.db.repositories.message_repo import (  # pylint: disable=import-outside-toplevel
@@ -154,7 +164,7 @@ async def _persist_response(cruse_session: CruseSession, response: str, trace_en
 
         factory = get_session_factory()
         if factory is None:
-            return
+            return None
         async with factory() as db:
             metadata = {"latency_ms": latency_ms}
             if trace_entries:
@@ -170,8 +180,10 @@ async def _persist_response(cruse_session: CruseSession, response: str, trace_en
                 latency_ms=latency_ms,
             )
             await db.commit()
+            return msg.id
     except Exception:  # pylint: disable=broad-exception-caught
         logger.exception("Failed to persist assistant response")
+        return None
 
 
 async def _persist_error(cruse_session: CruseSession, t_bridge_start: float):
