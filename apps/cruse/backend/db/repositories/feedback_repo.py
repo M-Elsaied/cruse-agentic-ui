@@ -14,6 +14,8 @@
 #
 # END COPYRIGHT
 
+from sqlalchemy import delete
+from sqlalchemy import func
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -88,3 +90,29 @@ class FeedbackRepository:
         stmt = stmt.order_by(FeedbackReport.created_at.desc()).limit(limit).offset(offset)
         result = await self._db.execute(stmt)
         return list(result.scalars().all())
+
+    async def count_reports(
+        self,
+        *,
+        status: str | None = None,
+        user_id: str | None = None,
+    ) -> int:
+        """Count feedback reports with optional filters."""
+        stmt = select(func.count(FeedbackReport.id))  # pylint: disable=not-callable
+        if status is not None:
+            stmt = stmt.where(FeedbackReport.status == status)
+        if user_id is not None:
+            stmt = stmt.where(FeedbackReport.user_id == user_id)
+        result = await self._db.execute(stmt)
+        return result.scalar_one()
+
+    async def delete_rating(self, message_id: int, user_id: str) -> bool:
+        """Delete a user's rating on a message. Returns True if a row was deleted."""
+        stmt = (
+            delete(MessageFeedback)
+            .where(MessageFeedback.message_id == message_id)
+            .where(MessageFeedback.user_id == user_id)
+        )
+        result = await self._db.execute(stmt)
+        await self._db.flush()
+        return result.rowcount > 0
