@@ -40,13 +40,17 @@ from apps.cruse.backend.db.engine import init_db
 from apps.cruse.backend.db.repositories.conversation_repo import ConversationRepository
 from apps.cruse.backend.db.repositories.feedback_repo import FeedbackRepository
 from apps.cruse.backend.db.repositories.message_repo import MessageRepository
+from apps.cruse.backend.db.repositories.request_log_repo import RequestLogRepository
 from apps.cruse.backend.db.repositories.user_repo import UserRepository
 from apps.cruse.backend.log_capture import LogRingBuffer
+from apps.cruse.backend.models import AnalyticsOverview
+from apps.cruse.backend.models import AnalyticsResponse
 from apps.cruse.backend.models import ChatMessage
 from apps.cruse.backend.models import ConversationDetailResponse
 from apps.cruse.backend.models import ConversationListResponse
 from apps.cruse.backend.models import ConversationSummary
 from apps.cruse.backend.models import MessageResponse
+from apps.cruse.backend.models import NetworkScorecard
 from apps.cruse.backend.models import RatingRequest
 from apps.cruse.backend.models import RatingResponse
 from apps.cruse.backend.models import ReportListResponse
@@ -54,6 +58,8 @@ from apps.cruse.backend.models import ReportRequest
 from apps.cruse.backend.models import ReportResponse
 from apps.cruse.backend.models import ServerEventType
 from apps.cruse.backend.models import SessionCreate
+from apps.cruse.backend.models import UserBreakdown
+from apps.cruse.backend.models import UserBreakdownResponse
 from apps.cruse.backend.rate_limiter import RateLimiter
 from apps.cruse.backend.session_manager import SessionManager
 from apps.cruse.backend.session_manager import get_cruse_connectivity
@@ -581,6 +587,116 @@ async def admin_delete_session(session_id: str, _user: ClerkUser = Depends(requi
         raise HTTPException(status_code=404, detail="Session not found")
     timeout_manager.remove(session_id)
     return {"status": "destroyed", "session_id": session_id}
+
+
+# ─── Analytics ────────────────────────────────────────────────────
+
+
+@app.get("/api/admin/analytics", response_model=AnalyticsResponse)
+async def admin_analytics(  # pylint: disable=too-many-locals
+    _user: ClerkUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+    period_days: int = Query(30, ge=1, le=365),
+):
+    """Main analytics dashboard payload (admin only).
+
+    Combines request stats, satisfaction scores, and conversation depth
+    into a single response to avoid multiple round-trips.
+    """
+    req_repo = RequestLogRepository(db)
+    fb_repo = FeedbackRepository(db)
+    conv_repo = ConversationRepository(db)
+
+    overview_raw = await req_repo.get_overview(period_days=period_days)
+    satisfaction = await fb_repo.get_satisfaction_score(period_days=period_days)
+    open_reports = await fb_repo.count_reports(status="open")
+    requests_over_time = await req_repo.get_requests_over_time(period_days=period_days)
+    active_users_over_time = await req_repo.get_active_users_over_time(period_days=period_days)
+    top_networks = await req_repo.get_top_networks(period_days=period_days)
+    network_satisfaction = await fb_repo.get_network_satisfaction(period_days=period_days)
+    network_depth = await conv_repo.get_avg_depth_by_network(period_days=period_days)
+
+    # Merge network data: requests + satisfaction + depth into scorecard
+    sat_by_network = {s["network"]: s["score"] for s in network_satisfaction}
+    depth_by_network = {d["network"]: d["avg_messages"] for d in network_depth}
+
+    scorecard = [
+        NetworkScorecard(
+            network=n["network"],
+            request_count=n["request_count"],
+            avg_latency_ms=n["avg_latency_ms"],
+            error_rate=n["error_rate"],
+            satisfaction_score=sat_by_network.get(n["network"], -1.0),
+            avg_depth=depth_by_network.get(n["network"], 0.0),
+        )
+        for n in top_networks
+    ]
+
+    overview = AnalyticsOverview(
+        total_requests=overview_raw["total_requests"],
+        unique_users=overview_raw["unique_users"],
+        avg_latency_ms=overview_raw["avg_latency_ms"],
+        error_count=overview_raw["error_count"],
+        error_rate=overview_raw["error_rate"],
+        satisfaction_score=satisfaction["score"],
+        open_reports=open_reports,
+        period_days=period_days,
+        prev_total_requests=overview_raw["prev_total_requests"],
+        prev_unique_users=overview_raw["prev_unique_users"],
+        prev_error_rate=overview_raw["prev_error_rate"],
+    )
+
+    return AnalyticsResponse(
+        overview=overview,
+        requests_over_time=requests_over_time,
+        active_users_over_time=active_users_over_time,
+        network_scorecard=scorecard,
+    )
+
+
+@app.get("/api/admin/analytics/users", response_model=UserBreakdownResponse)
+async def admin_analytics_users(
+    _user: ClerkUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+    period_days: int = Query(30, ge=1, le=365),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """Per-user analytics breakdown (admin only, on-demand)."""
+    users, total = await RequestLogRepository(db).get_user_breakdown(
+        period_days=period_days, limit=limit, offset=offset
+    )
+    return UserBreakdownResponse(
+        users=[UserBreakdown(**u) for u in users],
+        total=total,
+    )
+
+
+@app.get("/api/admin/analytics/export")
+async def admin_analytics_export(
+    _user: ClerkUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+    period_days: int = Query(90, ge=1, le=365),
+):
+    """Export request log as CSV (admin only). Hard limit 10K rows."""
+    import csv  # pylint: disable=import-outside-toplevel
+    import io  # pylint: disable=import-outside-toplevel
+
+    from fastapi.responses import StreamingResponse  # pylint: disable=import-outside-toplevel
+
+    rows = await RequestLogRepository(db).get_export_rows(period_days=period_days)
+
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=["date", "user_id", "agent_network", "latency_ms", "is_error"])
+    writer.writeheader()
+    writer.writerows(rows)
+    output.seek(0)
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=request_log_export.csv"},
+    )
 
 
 # ─── Startup / Shutdown ──────────────────────────────────────────

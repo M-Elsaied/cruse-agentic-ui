@@ -14,6 +14,12 @@
 #
 # END COPYRIGHT
 
+from __future__ import annotations
+
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
+
 from sqlalchemy import func
 from sqlalchemy import select
 from sqlalchemy import update
@@ -112,3 +118,39 @@ class ConversationRepository:
         stmt = stmt.order_by(Conversation.updated_at.desc()).limit(limit).offset(offset)
         result = await self._db.execute(stmt)
         return [(row[0], row[1]) for row in result.all()]
+
+    # ─── Analytics Methods ────────────────────────────────────────
+
+    async def get_avg_depth_by_network(self, *, period_days: int = 30) -> list[dict]:
+        """Get average conversation depth (message count) per network."""
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=period_days)
+
+        # Subquery: message count per conversation
+        msg_count_sq = (
+            select(
+                Message.conversation_id,
+                func.count(Message.id).label("msg_count"),  # pylint: disable=not-callable
+            )
+            .group_by(Message.conversation_id)
+            .subquery()
+        )
+
+        stmt = (
+            select(
+                Conversation.agent_network.label("network"),
+                func.avg(msg_count_sq.c.msg_count).label("avg_messages"),
+                func.count(Conversation.id).label("conversation_count"),  # pylint: disable=not-callable
+            )
+            .join(msg_count_sq, Conversation.id == msg_count_sq.c.conversation_id)
+            .where(Conversation.created_at >= cutoff)
+            .group_by(Conversation.agent_network)
+        )
+        result = await self._db.execute(stmt)
+        return [
+            {
+                "network": row.network,
+                "avg_messages": round(float(row.avg_messages), 1) if row.avg_messages else 0.0,
+                "conversation_count": row.conversation_count,
+            }
+            for row in result.all()
+        ]

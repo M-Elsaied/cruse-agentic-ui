@@ -14,13 +14,20 @@
 #
 # END COPYRIGHT
 
+from datetime import datetime
+from datetime import timedelta
+from datetime import timezone
+
+from sqlalchemy import case
 from sqlalchemy import delete
 from sqlalchemy import func
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from apps.cruse.backend.db.models import Conversation
 from apps.cruse.backend.db.models import FeedbackReport
+from apps.cruse.backend.db.models import Message
 from apps.cruse.backend.db.models import MessageFeedback
 
 
@@ -116,3 +123,54 @@ class FeedbackRepository:
         result = await self._db.execute(stmt)
         await self._db.flush()
         return result.rowcount > 0
+
+    # ─── Analytics Methods ────────────────────────────────────────
+
+    async def get_satisfaction_score(self, *, period_days: int = 30) -> dict:
+        """Get aggregate satisfaction score for the period."""
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=period_days)
+        stmt = select(
+            func.sum(case((MessageFeedback.rating == 1, 1), else_=0)).label("thumbs_up"),
+            func.sum(case((MessageFeedback.rating == -1, 1), else_=0)).label("thumbs_down"),
+            func.count(MessageFeedback.id).label("total"),  # pylint: disable=not-callable
+        ).where(MessageFeedback.created_at >= cutoff)
+        result = await self._db.execute(stmt)
+        row = result.one()
+        total = row.total or 0
+        thumbs_up = row.thumbs_up or 0
+        thumbs_down = row.thumbs_down or 0
+        return {
+            "thumbs_up": thumbs_up,
+            "thumbs_down": thumbs_down,
+            "total": total,
+            "score": round(thumbs_up / total, 4) if total > 0 else -1.0,
+        }
+
+    async def get_network_satisfaction(self, *, period_days: int = 30) -> list[dict]:
+        """Get per-network satisfaction scores.
+
+        Joins message_feedback -> messages -> conversations to resolve the agent_network.
+        """
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(days=period_days)
+        stmt = (
+            select(
+                Conversation.agent_network.label("network"),
+                func.sum(case((MessageFeedback.rating == 1, 1), else_=0)).label("thumbs_up"),
+                func.sum(case((MessageFeedback.rating == -1, 1), else_=0)).label("thumbs_down"),
+                func.count(MessageFeedback.id).label("total"),  # pylint: disable=not-callable
+            )
+            .join(Message, MessageFeedback.message_id == Message.id)
+            .join(Conversation, Message.conversation_id == Conversation.id)
+            .where(MessageFeedback.created_at >= cutoff)
+            .group_by(Conversation.agent_network)
+        )
+        result = await self._db.execute(stmt)
+        return [
+            {
+                "network": row.network,
+                "thumbs_up": row.thumbs_up or 0,
+                "thumbs_down": row.thumbs_down or 0,
+                "score": round((row.thumbs_up or 0) / row.total, 4) if row.total > 0 else -1.0,
+            }
+            for row in result.all()
+        ]
