@@ -14,7 +14,7 @@
 #
 # END COPYRIGHT
 
-# pylint: disable=too-many-return-statements,too-many-branches,missing-function-docstring
+# pylint: disable=too-many-return-statements,too-many-branches,missing-function-docstring,too-many-arguments,too-many-positional-arguments
 
 import pytest
 
