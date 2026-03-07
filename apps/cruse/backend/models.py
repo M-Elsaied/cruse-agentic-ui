@@ -16,6 +16,7 @@
 
 from enum import Enum
 from typing import Any
+from typing import Literal
 from typing import Optional
 
 from pydantic import BaseModel
@@ -250,3 +251,69 @@ class UserBreakdownResponse(BaseModel):
 
     users: list[UserBreakdown]
     total: int
+
+
+# ─── Settings / BYOK Models ──────────────────────────────────
+
+
+class KeyStoreRequest(BaseModel):
+    """Request body for storing an API key."""
+
+    provider: Literal["openai", "anthropic", "google"]
+    key: str = Field(..., max_length=500, description="The raw API key")
+    label: str | None = Field(None, max_length=255)
+
+
+class KeyValidateRequest(BaseModel):
+    """Request body for validating an API key without storing."""
+
+    provider: Literal["openai", "anthropic", "google"]
+    key: str = Field(..., max_length=500)
+
+
+class KeyInfo(BaseModel):
+    """Stored key metadata (never includes the raw key)."""
+
+    provider: str
+    label: str | None = None
+    key_hint: str | None = None
+    is_valid: bool = True
+    created_at: str | None = None
+
+
+class KeyListResponse(BaseModel):
+    """Response listing stored keys."""
+
+    keys: list[KeyInfo]
+    supported_providers: list[str]
+
+
+class KeyStoreResponse(BaseModel):
+    """Response after storing a key."""
+
+    provider: str
+    key_hint: str | None = None
+    message: str
+
+
+class KeyValidateResponse(BaseModel):
+    """Response from key validation."""
+
+    valid: bool
+    message: str
+
+
+class PreferenceResponse(BaseModel):
+    """User preference settings."""
+
+    preferred_provider: str | None = None
+    preferred_model: str | None = None
+    settings: dict[str, Any] = Field(default_factory=dict)
+
+
+class PreferenceUpdateRequest(BaseModel):
+    """Request body for updating preferences."""
+
+    preferred_provider: str | None = None
+    preferred_model: str | None = None
+    settings: dict[str, Any] | None = None
