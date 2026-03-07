@@ -183,7 +183,7 @@ export default function SignInPage() {
               background: 'rgba(30,41,59,0.6)',
               backdropFilter: 'blur(20px)',
               borderRadius: 4,
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.15)',
               p: { xs: 2, sm: 3 },
             }}
           >
@@ -199,38 +199,89 @@ export default function SignInPage() {
                     border: 'none',
                   },
                   headerTitle: { color: '#f1f5f9' },
-                  headerSubtitle: { color: '#94a3b8' },
-                  formFieldLabel: { color: '#94a3b8' },
+                  headerSubtitle: { color: '#cbd5e1' },
+                  formFieldLabel: { color: '#cbd5e1', fontWeight: 500 },
                   formFieldInput: {
-                    background: 'rgba(255,255,255,0.06)',
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    background: 'rgba(255,255,255,0.12)',
+                    borderColor: 'rgba(255,255,255,0.25)',
                     color: '#f1f5f9',
+                    '&::placeholder': { color: '#94a3b8' },
                     '&:focus': {
                       borderColor: '#3b82f6',
                       boxShadow: '0 0 0 2px rgba(59,130,246,0.3)',
+                      background: 'rgba(255,255,255,0.15)',
                     },
                   },
+                  formFieldInfoText: { color: '#94a3b8' },
+                  formFieldWarningText: { color: '#fbbf24' },
+                  formFieldSuccessText: { color: '#34d399' },
+                  formFieldErrorText: { color: '#f87171' },
+                  formFieldHintText: { color: '#94a3b8' },
                   formButtonPrimary: {
                     background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                    fontWeight: 600,
                     '&:hover': {
                       background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
                     },
                   },
-                  socialButtonsBlockButton: {
-                    background: 'rgba(255,255,255,0.06)',
-                    borderColor: 'rgba(255,255,255,0.1)',
+                  formButtonReset: { color: '#3b82f6' },
+                  formResendCodeLink: { color: '#3b82f6' },
+                  otpCodeFieldInput: {
+                    background: 'rgba(255,255,255,0.12)',
+                    borderColor: 'rgba(255,255,255,0.25)',
                     color: '#f1f5f9',
-                    '&:hover': {
-                      background: 'rgba(255,255,255,0.1)',
+                    fontSize: '1.25rem',
+                    '&:focus': {
+                      borderColor: '#3b82f6',
+                      boxShadow: '0 0 0 2px rgba(59,130,246,0.3)',
+                      background: 'rgba(255,255,255,0.15)',
                     },
                   },
-                  footerActionLink: { color: '#3b82f6' },
-                  dividerLine: { borderColor: 'rgba(255,255,255,0.08)' },
-                  dividerText: { color: '#64748b' },
-                  identityPreviewEditButton: { color: '#3b82f6' },
-                  formFieldAction: { color: '#3b82f6' },
+                  socialButtonsBlockButton: {
+                    background: 'rgba(255,255,255,0.1)',
+                    borderColor: 'rgba(255,255,255,0.2)',
+                    color: '#f1f5f9',
+                    '&:hover': {
+                      background: 'rgba(255,255,255,0.15)',
+                      borderColor: 'rgba(255,255,255,0.3)',
+                    },
+                  },
+                  socialButtonsBlockButtonText: { color: '#e2e8f0' },
+                  footerActionLink: { color: '#60a5fa' },
+                  footerActionText: { color: '#cbd5e1' },
+                  dividerLine: { borderColor: 'rgba(255,255,255,0.15)' },
+                  dividerText: { color: '#94a3b8' },
+                  identityPreviewEditButton: { color: '#60a5fa' },
+                  identityPreviewText: { color: '#e2e8f0' },
+                  formFieldAction: { color: '#60a5fa' },
+                  formFieldInputShowPasswordButton: { color: '#94a3b8' },
                   alertText: { color: '#f1f5f9' },
-                  footerActionText: { color: '#94a3b8' },
+                  alert: {
+                    background: 'rgba(255,255,255,0.08)',
+                    borderColor: 'rgba(255,255,255,0.15)',
+                  },
+                  backLink: { color: '#60a5fa' },
+                  alternativeMethodsBlockButton: {
+                    background: 'rgba(255,255,255,0.08)',
+                    borderColor: 'rgba(255,255,255,0.2)',
+                    color: '#e2e8f0',
+                    '&:hover': {
+                      background: 'rgba(255,255,255,0.12)',
+                    },
+                  },
+                  selectButton: {
+                    background: 'rgba(255,255,255,0.12)',
+                    borderColor: 'rgba(255,255,255,0.25)',
+                    color: '#f1f5f9',
+                  },
+                  selectOptionsContainer: {
+                    background: '#1e293b',
+                    borderColor: 'rgba(255,255,255,0.15)',
+                  },
+                  selectOption: {
+                    color: '#e2e8f0',
+                    '&:hover': { background: 'rgba(255,255,255,0.1)' },
+                  },
                 },
               }}
             />
