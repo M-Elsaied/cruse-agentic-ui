@@ -5,6 +5,7 @@ import { Close } from '@mui/icons-material';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { useCruseStore } from '@/store/cruseStore';
+import { AdminConversationsPanel } from '@/components/admin/AdminConversationsPanel';
 import { AdminReportsPanel } from '@/components/admin/AdminReportsPanel';
 import { AdminSessionsPanel } from '@/components/admin/AdminSessionsPanel';
 import { AdminStatsPanel } from '@/components/admin/AdminStatsPanel';
@@ -68,6 +69,7 @@ export function AdminDrawer() {
         }}
       >
         <Tab label="Sessions" />
+        <Tab label="Conversations" />
         <Tab label="Stats" />
         <Tab label="Reports" />
       </Tabs>
@@ -89,6 +91,18 @@ export function AdminDrawer() {
           )}
           {activeTab === 1 && (
             <motion.div
+              key="conversations"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.15 }}
+              style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}
+            >
+              <AdminConversationsPanel />
+            </motion.div>
+          )}
+          {activeTab === 2 && (
+            <motion.div
               key="stats"
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -99,7 +113,7 @@ export function AdminDrawer() {
               <AdminStatsPanel />
             </motion.div>
           )}
-          {activeTab === 2 && (
+          {activeTab === 3 && (
             <motion.div
               key="reports"
               initial={{ opacity: 0, x: 10 }}
