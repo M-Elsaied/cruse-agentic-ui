@@ -43,6 +43,8 @@ from apps.cruse.backend.db.repositories.message_repo import MessageRepository
 from apps.cruse.backend.db.repositories.request_log_repo import RequestLogRepository
 from apps.cruse.backend.db.repositories.user_repo import UserRepository
 from apps.cruse.backend.log_capture import LogRingBuffer
+from apps.cruse.backend.models import AdminConversationListResponse
+from apps.cruse.backend.models import AdminConversationSummary
 from apps.cruse.backend.models import AnalyticsOverview
 from apps.cruse.backend.models import AnalyticsResponse
 from apps.cruse.backend.models import ChatMessage
@@ -400,8 +402,8 @@ async def get_conversation(
     conv = await ConversationRepository(db).get_with_messages(conversation_id)
     if conv is None or (conv.user_id != user.user_id and user.role != "admin"):
         raise HTTPException(status_code=404, detail="Conversation not found")
-    # Filter out internal metadata (agent traces, latency) — only expose user-facing data
-    _internal_keys = {"agent_trace", "latency_ms"}
+    # Admins see full metadata (agent traces, latency) for debugging
+    _internal_keys = {"agent_trace", "latency_ms"} if user.role != "admin" else set()
     messages = [
         MessageResponse(
             id=m.id,
@@ -568,9 +570,26 @@ async def admin_list_reports(
 
 
 @app.get("/api/admin/sessions")
-async def admin_list_sessions(_user: ClerkUser = Depends(require_admin)):
-    """List all active sessions (admin only)."""
-    return {"sessions": session_manager.list_sessions()}
+async def admin_list_sessions(
+    _user: ClerkUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all active sessions with resolved user identity (admin only)."""
+    sessions = session_manager.list_sessions()
+    # Resolve user IDs to email/name from the users table
+    user_ids = {s["user_id"] for s in sessions}
+    if user_ids:
+        user_repo = UserRepository(db)
+        user_map: dict[str, dict] = {}
+        for uid in user_ids:
+            u = await user_repo.get_by_id(uid)
+            if u:
+                user_map[uid] = {"email": u.email, "name": u.name}
+        for s in sessions:
+            info = user_map.get(s["user_id"], {})
+            s["email"] = info.get("email")
+            s["name"] = info.get("name")
+    return {"sessions": sessions}
 
 
 @app.get("/api/admin/stats")
@@ -587,6 +606,46 @@ async def admin_delete_session(session_id: str, _user: ClerkUser = Depends(requi
         raise HTTPException(status_code=404, detail="Session not found")
     timeout_manager.remove(session_id)
     return {"status": "destroyed", "session_id": session_id}
+
+
+@app.get("/api/admin/conversations", response_model=AdminConversationListResponse)
+async def admin_list_conversations(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    _user: ClerkUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    user_id: str | None = Query(None),
+    agent_network: str | None = Query(None),
+    include_archived: bool = Query(False),
+):
+    """List all conversations across all users (admin only)."""
+    rows, total = await ConversationRepository(db).list_all(
+        limit=limit + 1,
+        offset=offset,
+        user_id=user_id,
+        agent_network=agent_network,
+        include_archived=include_archived,
+    )
+    has_more = len(rows) > limit
+    if has_more:
+        rows = rows[:limit]
+    conversations = [
+        AdminConversationSummary(
+            id=conv.id,
+            session_id=conv.session_id,
+            agent_network=conv.agent_network,
+            title=conv.title,
+            is_archived=conv.is_archived,
+            created_at=conv.created_at.isoformat(),
+            updated_at=conv.updated_at.isoformat(),
+            message_count=msg_count,
+            user_id=conv.user_id,
+            user_email=email,
+            user_name=name,
+        )
+        for conv, msg_count, email, name in rows
+    ]
+    return AdminConversationListResponse(conversations=conversations, total=total, has_more=has_more)
 
 
 # ─── Analytics ────────────────────────────────────────────────────

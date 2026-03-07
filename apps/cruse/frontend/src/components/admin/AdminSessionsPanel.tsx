@@ -21,6 +21,8 @@ interface SessionEntry {
   session_id: string;
   agent_network: string;
   user_id: string;
+  email: string | null;
+  name: string | null;
   created_at: number;
 }
 
@@ -100,7 +102,9 @@ export function AdminSessionsPanel() {
           {sessions.map((s) => (
             <TableRow key={s.session_id} hover>
               <TableCell sx={{ fontSize: '0.75rem', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {s.user_id.slice(0, 12)}...
+                <Tooltip title={s.email || s.user_id}>
+                  <span>{s.name || s.email || `${s.user_id.slice(0, 12)}...`}</span>
+                </Tooltip>
               </TableCell>
               <TableCell sx={{ fontSize: '0.75rem' }}>
                 {s.agent_network.split('/').pop()?.replace(/_/g, ' ')}

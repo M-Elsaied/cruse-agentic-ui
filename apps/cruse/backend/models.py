@@ -113,6 +113,30 @@ class ConversationDetailResponse(BaseModel):
     messages: list[MessageResponse]
 
 
+class AdminConversationSummary(BaseModel):
+    """Conversation summary with user identity for admin views."""
+
+    id: int
+    session_id: str
+    agent_network: str
+    title: str | None = None
+    is_archived: bool = False
+    created_at: str
+    updated_at: str
+    message_count: int = 0
+    user_id: str
+    user_email: str | None = None
+    user_name: str | None = None
+
+
+class AdminConversationListResponse(BaseModel):
+    """Paginated admin conversation list."""
+
+    conversations: list[AdminConversationSummary]
+    total: int
+    has_more: bool
+
+
 class RatingRequest(BaseModel):
     """Request body for thumbs up/down rating."""
 
