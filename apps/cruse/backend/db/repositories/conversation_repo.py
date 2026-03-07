@@ -21,6 +21,7 @@ from datetime import timedelta
 from datetime import timezone
 
 from sqlalchemy import func
+from sqlalchemy import literal_column
 from sqlalchemy import select
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +29,7 @@ from sqlalchemy.orm import selectinload
 
 from apps.cruse.backend.db.models import Conversation
 from apps.cruse.backend.db.models import Message
+from apps.cruse.backend.db.models import User
 
 
 class ConversationRepository:
@@ -118,6 +120,61 @@ class ConversationRepository:
         stmt = stmt.order_by(Conversation.updated_at.desc()).limit(limit).offset(offset)
         result = await self._db.execute(stmt)
         return [(row[0], row[1]) for row in result.all()]
+
+    # ─── Admin Methods ─────────────────────────────────────────────
+
+    async def list_all(  # pylint: disable=too-many-arguments
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+        user_id: str | None = None,
+        agent_network: str | None = None,
+        include_archived: bool = False,
+    ) -> tuple[list, int]:
+        """Admin: list all conversations with user info and message counts."""
+        count_subq = (
+            select(Message.conversation_id, func.count(Message.id).label("msg_count"))  # pylint: disable=not-callable
+            .group_by(Message.conversation_id)
+            .subquery()
+        )
+        stmt = (
+            select(
+                Conversation,
+                func.coalesce(count_subq.c.msg_count, 0).label("message_count"),
+                User.email,
+                User.name,
+            )
+            .outerjoin(count_subq, Conversation.id == count_subq.c.conversation_id)
+            .outerjoin(User, Conversation.user_id == User.clerk_id)
+        )
+
+        # Filters
+        if user_id:
+            stmt = stmt.where(Conversation.user_id == user_id)
+        if agent_network:
+            stmt = stmt.where(Conversation.agent_network == agent_network)
+        if not include_archived:
+            stmt = stmt.where(Conversation.is_archived.is_(False))
+
+        # Total count (same filters, no pagination)
+        count_base = select(Conversation.id)
+        if user_id:
+            count_base = count_base.where(Conversation.user_id == user_id)
+        if agent_network:
+            count_base = count_base.where(Conversation.agent_network == agent_network)
+        if not include_archived:
+            count_base = count_base.where(Conversation.is_archived.is_(False))
+        count_stmt = select(func.count(literal_column("1"))).select_from(  # pylint: disable=not-callable
+            count_base.subquery()
+        )
+        count_result = await self._db.execute(count_stmt)
+        total = count_result.scalar_one()
+
+        stmt = stmt.order_by(Conversation.updated_at.desc()).limit(limit).offset(offset)
+        result = await self._db.execute(stmt)
+        rows = [(row[0], row[1], row[2], row[3]) for row in result.all()]
+        return rows, total
 
     # ─── Analytics Methods ────────────────────────────────────────
 
