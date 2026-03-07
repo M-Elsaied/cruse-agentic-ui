@@ -40,11 +40,15 @@ from apps.cruse.backend.db.engine import dispose_db
 from apps.cruse.backend.db.engine import get_db
 from apps.cruse.backend.db.engine import get_session_factory
 from apps.cruse.backend.db.engine import init_db
+from apps.cruse.backend.db.repositories.api_key_repo import ApiKeyRepository
 from apps.cruse.backend.db.repositories.conversation_repo import ConversationRepository
 from apps.cruse.backend.db.repositories.feedback_repo import FeedbackRepository
 from apps.cruse.backend.db.repositories.message_repo import MessageRepository
+from apps.cruse.backend.db.repositories.preference_repo import PreferenceRepository
 from apps.cruse.backend.db.repositories.request_log_repo import RequestLogRepository
 from apps.cruse.backend.db.repositories.user_repo import UserRepository
+from apps.cruse.backend.key_resolver import SUPPORTED_PROVIDERS
+from apps.cruse.backend.key_resolver import has_any_valid_key
 from apps.cruse.backend.log_capture import LogRingBuffer
 from apps.cruse.backend.models import AdminConversationListResponse
 from apps.cruse.backend.models import AdminConversationSummary
@@ -54,8 +58,16 @@ from apps.cruse.backend.models import ChatMessage
 from apps.cruse.backend.models import ConversationDetailResponse
 from apps.cruse.backend.models import ConversationListResponse
 from apps.cruse.backend.models import ConversationSummary
+from apps.cruse.backend.models import KeyInfo
+from apps.cruse.backend.models import KeyListResponse
+from apps.cruse.backend.models import KeyStoreRequest
+from apps.cruse.backend.models import KeyStoreResponse
+from apps.cruse.backend.models import KeyValidateRequest
+from apps.cruse.backend.models import KeyValidateResponse
 from apps.cruse.backend.models import MessageResponse
 from apps.cruse.backend.models import NetworkScorecard
+from apps.cruse.backend.models import PreferenceResponse
+from apps.cruse.backend.models import PreferenceUpdateRequest
 from apps.cruse.backend.models import RatingRequest
 from apps.cruse.backend.models import RatingResponse
 from apps.cruse.backend.models import ReportListResponse
@@ -243,6 +255,109 @@ async def get_network_connectivity(agent_network: str, _user: ClerkUser = Depend
         raise HTTPException(status_code=500, detail="Failed to retrieve network connectivity") from exc
 
 
+# ─── Settings / BYOK Endpoints ───────────────────────────────────
+
+
+@app.get("/api/settings/keys", response_model=KeyListResponse)
+async def list_keys(
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List the user's stored API keys (masked, never raw)."""
+    providers = await ApiKeyRepository(db).list_providers(user.user_id)
+    keys = [
+        KeyInfo(
+            provider=p["provider"],
+            label=p["label"],
+            key_hint=p["key_hint"],
+            is_valid=p["is_valid"],
+            created_at=p["created_at"].isoformat() if p["created_at"] else None,
+        )
+        for p in providers
+    ]
+    return KeyListResponse(keys=keys, supported_providers=SUPPORTED_PROVIDERS)
+
+
+@app.post("/api/settings/keys", response_model=KeyStoreResponse)
+async def store_key(
+    body: KeyStoreRequest,
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Validate and store an API key."""
+    from apps.cruse.backend.key_validator import validate_key  # pylint: disable=import-outside-toplevel
+
+    valid, message = await validate_key(body.provider, body.key)
+    if not valid:
+        raise HTTPException(status_code=422, detail=message)
+
+    api_key = await ApiKeyRepository(db).store(user.user_id, body.provider, body.key, label=body.label)
+    return KeyStoreResponse(provider=api_key.provider, key_hint=api_key.key_hint, message="Key stored successfully")
+
+
+@app.delete("/api/settings/keys/{provider}")
+async def delete_key(
+    provider: str,
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a stored API key."""
+    if provider not in SUPPORTED_PROVIDERS:
+        raise HTTPException(status_code=422, detail=f"Unsupported provider: {provider}")
+    deleted = await ApiKeyRepository(db).delete(user.user_id, provider)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="No key found for this provider")
+    return {"status": "deleted", "provider": provider}
+
+
+@app.post("/api/settings/keys/validate", response_model=KeyValidateResponse)
+async def validate_key_endpoint(
+    body: KeyValidateRequest,
+    _user: ClerkUser = Depends(get_current_user),
+):
+    """Validate an API key without storing it."""
+    from apps.cruse.backend.key_validator import validate_key  # pylint: disable=import-outside-toplevel
+
+    valid, message = await validate_key(body.provider, body.key)
+    return KeyValidateResponse(valid=valid, message=message)
+
+
+@app.get("/api/settings/preferences", response_model=PreferenceResponse)
+async def get_preferences(
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the user's LLM preferences."""
+    pref = await PreferenceRepository(db).get(user.user_id)
+    if pref is None:
+        return PreferenceResponse()
+    return PreferenceResponse(
+        preferred_provider=pref.preferred_provider,
+        preferred_model=pref.preferred_model,
+        settings=pref.settings or {},
+    )
+
+
+@app.put("/api/settings/preferences", response_model=PreferenceResponse)
+async def update_preferences(
+    body: PreferenceUpdateRequest,
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update the user's LLM preferences."""
+    pref = await PreferenceRepository(db).update(
+        user.user_id,
+        preferred_provider=body.preferred_provider,
+        preferred_model=body.preferred_model,
+        settings=body.settings,
+    )
+    return PreferenceResponse(
+        preferred_provider=pref.preferred_provider,
+        preferred_model=pref.preferred_model,
+        settings=pref.settings or {},
+    )
+
+
 # ─── WebSocket Endpoint ──────────────────────────────────────────
 
 
@@ -296,7 +411,7 @@ async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Que
 
             timeout_manager.touch(session_id)
 
-            # Rate-limit check (admins bypass) — uses DB session
+            # Rate-limit check (admins and BYOK users bypass) — uses DB session
             factory = get_session_factory()
             if factory is not None:
                 async with factory() as db:
@@ -304,8 +419,9 @@ async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Que
                     await UserRepository(db).upsert_from_clerk(
                         ws_user.user_id, ws_user.email, ws_user.name, ws_user.role
                     )
+                    user_has_byok = await has_any_valid_key(ws_user.user_id, db)
                     allowed, remaining, limit = await rate_limiter.check_and_increment(
-                        ws_user.user_id, ws_user.role, db
+                        ws_user.user_id, ws_user.role, db, has_byok=user_has_byok
                     )
                     await db.commit()
             else:
@@ -385,7 +501,12 @@ async def get_me(user: ClerkUser = Depends(get_current_user)):
                     "org_slug": tenant.org.slug,
                     "is_org_admin": tenant.is_org_admin,
                 }
-                remaining, limit = await rate_limiter.get_remaining(user.user_id, user.role, db)
+                has_byok = await has_any_valid_key(user.user_id, db)
+                result["has_byok"] = has_byok
+                result["key_source"] = "personal" if has_byok else "platform"
+                remaining, limit = await rate_limiter.get_remaining(
+                    user.user_id, user.role, db, has_byok=has_byok
+                )
                 if remaining is not None:
                     result["rate_limit"] = {"remaining": remaining, "limit": limit}
                 await db.commit()
