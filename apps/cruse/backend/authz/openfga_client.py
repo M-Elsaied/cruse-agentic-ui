@@ -14,6 +14,10 @@
 #
 # END COPYRIGHT
 
+# pylint: disable=import-error
+# openfga-sdk is installed via apps/cruse/backend/requirements.txt,
+# not the top-level requirements.txt used by CI lint.
+
 import json
 import logging
 import os
