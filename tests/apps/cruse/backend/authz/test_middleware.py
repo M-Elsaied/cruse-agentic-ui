@@ -14,7 +14,7 @@
 #
 # END COPYRIGHT
 
-# pylint: disable=missing-function-docstring
+# pylint: disable=missing-function-docstring,redefined-outer-name
 
 """Layer 3: Authorization Middleware Tests.
 
@@ -119,7 +119,7 @@ async def test_org_member_cannot_create_in_org(authz, mock_openfga, make_clerk_u
 
 
 @pytest.mark.asyncio
-async def test_cross_org_access_denied(authz, mock_openfga, make_clerk_user, tuple_mgr):
+async def test_cross_org_access_denied(authz, make_clerk_user, tuple_mgr):
     """User in org_a cannot access org_b's network."""
     user_a = make_clerk_user(user_id="alice")
     await tuple_mgr.on_org_created("org_a", "alice")

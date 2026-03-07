@@ -14,7 +14,7 @@
 #
 # END COPYRIGHT
 
-# pylint: disable=missing-function-docstring
+# pylint: disable=missing-function-docstring,protected-access
 
 """Layer 1: OpenFGA Client Unit Tests.
 

@@ -14,7 +14,7 @@
 #
 # END COPYRIGHT
 
-# pylint: disable=missing-function-docstring
+# pylint: disable=missing-function-docstring,redefined-outer-name,protected-access
 
 """Layer 2: Tuple Manager Unit Tests.
 

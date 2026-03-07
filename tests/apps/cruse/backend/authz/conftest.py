@@ -14,7 +14,7 @@
 #
 # END COPYRIGHT
 
-# pylint: disable=missing-function-docstring
+# pylint: disable=too-many-return-statements,too-many-branches
 
 import pytest
 
@@ -34,7 +34,7 @@ class MockOpenFGAClient(CruseOpenFGAClient):
       - AgentNetwork: admin from container (org admin -> network owner)
     """
 
-    def __init__(self):
+    def __init__(self):  # pylint: disable=super-init-not-called
         # Skip parent __init__ — no real OpenFGA connection
         self._tuples: set[tuple[str, str, str, str]] = set()
         self._initialized = True
