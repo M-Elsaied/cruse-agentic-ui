@@ -14,16 +14,18 @@
 #
 # END COPYRIGHT
 
-# pylint: disable=too-many-return-statements,too-many-branches
+# pylint: disable=too-many-return-statements,too-many-branches,missing-function-docstring
 
 import pytest
 
 from apps.cruse.backend.auth import ClerkUser
-from apps.cruse.backend.authz.openfga_client import CruseOpenFGAClient
 
 
-class MockOpenFGAClient(CruseOpenFGAClient):
+class MockOpenFGAClient:
     """In-memory OpenFGA mock for unit tests.
+
+    Standalone mock that implements the same interface as CruseOpenFGAClient
+    without importing openfga-sdk (which is not installed in CI).
 
     Stores tuples as a set of (user, relation, object_type, object_id) and
     implements the computed relations from the authorization model:
@@ -34,8 +36,7 @@ class MockOpenFGAClient(CruseOpenFGAClient):
       - AgentNetwork: admin from container (org admin -> network owner)
     """
 
-    def __init__(self):  # pylint: disable=super-init-not-called
-        # Skip parent __init__ — no real OpenFGA connection
+    def __init__(self):
         self._tuples: set[tuple[str, str, str, str]] = set()
         self._initialized = True
 
