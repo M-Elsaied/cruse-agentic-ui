@@ -504,9 +504,7 @@ async def get_me(user: ClerkUser = Depends(get_current_user)):
                 has_byok = await has_any_valid_key(user.user_id, db)
                 result["has_byok"] = has_byok
                 result["key_source"] = "personal" if has_byok else "platform"
-                remaining, limit = await rate_limiter.get_remaining(
-                    user.user_id, user.role, db, has_byok=has_byok
-                )
+                remaining, limit = await rate_limiter.get_remaining(user.user_id, user.role, db, has_byok=has_byok)
                 if remaining is not None:
                     result["rate_limit"] = {"remaining": remaining, "limit": limit}
                 await db.commit()

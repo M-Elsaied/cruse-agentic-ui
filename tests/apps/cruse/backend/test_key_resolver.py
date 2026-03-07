@@ -14,7 +14,7 @@
 #
 # END COPYRIGHT
 
-# pylint: disable=missing-function-docstring,redefined-outer-name
+# pylint: disable=missing-function-docstring
 
 import os
 

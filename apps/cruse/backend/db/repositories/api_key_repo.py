@@ -31,9 +31,7 @@ class ApiKeyRepository:
     def __init__(self, db: AsyncSession):
         self._db = db
 
-    async def store(
-        self, user_id: str, provider: str, plaintext_key: str, *, label: str | None = None
-    ) -> ApiKey:
+    async def store(self, user_id: str, provider: str, plaintext_key: str, *, label: str | None = None) -> ApiKey:
         """Encrypt and store an API key. Replaces existing key for the same provider."""
         encrypted = encrypt_key(plaintext_key)
         hint = plaintext_key[-4:] if len(plaintext_key) >= 4 else plaintext_key

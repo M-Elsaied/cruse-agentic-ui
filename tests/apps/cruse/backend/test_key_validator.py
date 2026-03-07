@@ -59,7 +59,7 @@ async def test_validate_anthropic_valid():
         client = AsyncMock()
         client.post.return_value = _mock_response(200)
         mock_cls.return_value.__aenter__.return_value = client
-        valid, msg = await validate_key("anthropic", "sk-ant-test")
+        valid, _msg = await validate_key("anthropic", "sk-ant-test")
     assert valid is True
 
 
@@ -69,7 +69,7 @@ async def test_validate_anthropic_invalid():
         client = AsyncMock()
         client.post.return_value = _mock_response(401)
         mock_cls.return_value.__aenter__.return_value = client
-        valid, msg = await validate_key("anthropic", "sk-ant-bad")
+        valid, _msg = await validate_key("anthropic", "sk-ant-bad")
     assert valid is False
 
 
@@ -79,7 +79,7 @@ async def test_validate_google_valid():
         client = AsyncMock()
         client.get.return_value = _mock_response(200)
         mock_cls.return_value.__aenter__.return_value = client
-        valid, msg = await validate_key("google", "AIza-test")
+        valid, _msg = await validate_key("google", "AIza-test")
     assert valid is True
 
 
@@ -89,7 +89,7 @@ async def test_validate_google_invalid():
         client = AsyncMock()
         client.get.return_value = _mock_response(400)
         mock_cls.return_value.__aenter__.return_value = client
-        valid, msg = await validate_key("google", "AIza-bad")
+        valid, _msg = await validate_key("google", "AIza-bad")
     assert valid is False
 
 
