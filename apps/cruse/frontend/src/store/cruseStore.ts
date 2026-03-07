@@ -56,9 +56,12 @@ interface CruseState {
   connectivityData: ConnectivityData | null;
   connectivityLoading: boolean;
 
-  // Auth
+  // Auth & Org
   userRole: 'admin' | 'user' | null;
   adminDrawerOpen: boolean;
+  orgName: string | null;
+  orgSlug: string | null;
+  isOrgAdmin: boolean;
 
   // Rate limiting
   rateLimitRemaining: number | null;
@@ -111,6 +114,7 @@ interface CruseState {
   clearDebugEntries: () => void;
   setDebugActiveTab: (tab: number) => void;
   setUserRole: (role: 'admin' | 'user' | null) => void;
+  setOrgInfo: (orgName: string | null, orgSlug: string | null, isOrgAdmin: boolean) => void;
   toggleAdminDrawer: () => void;
   toggleNetworkDrawer: () => void;
   setConnectivityData: (data: ConnectivityData | null) => void;
@@ -153,6 +157,9 @@ const initialState = {
   debugActiveTab: 0,
   userRole: null,
   adminDrawerOpen: false,
+  orgName: null,
+  orgSlug: null,
+  isOrgAdmin: false,
   networkDrawerOpen: false,
   connectivityData: null,
   connectivityLoading: false,
@@ -223,6 +230,7 @@ export const useCruseStore = create<CruseState>((set) => ({
   setDebugActiveTab: (tab) => set({ debugActiveTab: tab }),
 
   setUserRole: (role) => set({ userRole: role }),
+  setOrgInfo: (orgName, orgSlug, isOrgAdmin) => set({ orgName, orgSlug, isOrgAdmin }),
   toggleAdminDrawer: () =>
     set((state) => ({ adminDrawerOpen: !state.adminDrawerOpen })),
 
