@@ -26,6 +26,7 @@ import {
   BugReport,
   DarkMode,
   LightMode,
+  Settings as SettingsIcon,
   Add as AddIcon,
   History as HistoryIcon,
   Hub as HubIcon,
@@ -64,6 +65,8 @@ export function Header() {
   const toggleNetworkDrawer = useCruseStore((s) => s.toggleNetworkDrawer);
   const historyDrawerOpen = useCruseStore((s) => s.historyDrawerOpen);
   const toggleHistoryDrawer = useCruseStore((s) => s.toggleHistoryDrawer);
+  const settingsDrawerOpen = useCruseStore((s) => s.settingsDrawerOpen);
+  const toggleSettingsDrawer = useCruseStore((s) => s.toggleSettingsDrawer);
   const setViewingConversation = useCruseStore((s) => s.setViewingConversation);
   const { authFetch, API_BASE } = useAuthenticatedFetch();
 
@@ -224,6 +227,12 @@ export function Header() {
             </IconButton>
           </Tooltip>
 
+          <Tooltip title={settingsDrawerOpen ? 'Close settings' : 'Settings & API Keys'}>
+            <IconButton onClick={toggleSettingsDrawer} size="small">
+              <SettingsIcon sx={{ color: settingsDrawerOpen ? '#3b82f6' : undefined }} />
+            </IconButton>
+          </Tooltip>
+
           <Tooltip title={networkDrawerOpen ? 'Close network view' : 'View agent network'}>
             <span>
               <IconButton onClick={toggleNetworkDrawer} size="small" disabled={!agentNetwork}>
@@ -305,6 +314,10 @@ export function Header() {
             <MenuItem onClick={() => { toggleHistoryDrawer(); setMobileMenuAnchor(null); }}>
               <ListItemIcon><HistoryIcon fontSize="small" /></ListItemIcon>
               <ListItemText>History</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={() => { toggleSettingsDrawer(); setMobileMenuAnchor(null); }}>
+              <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
+              <ListItemText>Settings</ListItemText>
             </MenuItem>
             <MenuItem
               onClick={() => { toggleNetworkDrawer(); setMobileMenuAnchor(null); }}

@@ -34,12 +34,14 @@ class ApiKeyRepository:
     async def store(self, user_id: str, provider: str, plaintext_key: str, *, label: str | None = None) -> ApiKey:
         """Encrypt and store an API key. Replaces existing key for the same provider."""
         encrypted = encrypt_key(plaintext_key)
+        hint = plaintext_key[-4:] if len(plaintext_key) >= 4 else plaintext_key
         stmt = (
             insert(ApiKey)
             .values(
                 user_id=user_id,
                 provider=provider,
                 encrypted_key=encrypted,
+                key_hint=hint,
                 label=label,
                 is_valid=True,
             )
@@ -47,6 +49,7 @@ class ApiKeyRepository:
                 constraint="api_keys_user_id_provider_key",
                 set_={
                     "encrypted_key": encrypted,
+                    "key_hint": hint,
                     "label": label,
                     "is_valid": True,
                     "updated_at": func.now(),  # pylint: disable=not-callable
@@ -75,10 +78,18 @@ class ApiKeyRepository:
     async def list_providers(self, user_id: str) -> list[dict]:
         """List all stored providers for a user (without exposing keys)."""
         result = await self._db.execute(
-            select(ApiKey.provider, ApiKey.label, ApiKey.is_valid, ApiKey.created_at).where(ApiKey.user_id == user_id)
+            select(ApiKey.provider, ApiKey.label, ApiKey.key_hint, ApiKey.is_valid, ApiKey.created_at).where(
+                ApiKey.user_id == user_id
+            )
         )
         return [
-            {"provider": row.provider, "label": row.label, "is_valid": row.is_valid, "created_at": row.created_at}
+            {
+                "provider": row.provider,
+                "label": row.label,
+                "key_hint": row.key_hint,
+                "is_valid": row.is_valid,
+                "created_at": row.created_at,
+            }
             for row in result.all()
         ]
 

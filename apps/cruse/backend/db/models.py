@@ -127,6 +127,7 @@ class ApiKey(Base):
     encrypted_key: Mapped[str] = mapped_column(Text, nullable=False)
     key_version: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default="1")
     label: Mapped[str | None] = mapped_column(String(255))
+    key_hint: Mapped[str | None] = mapped_column(String(10))
     is_valid: Mapped[bool] = mapped_column(Boolean, server_default="true")
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

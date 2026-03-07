@@ -46,6 +46,8 @@ function AuthenticatedHome() {
   const setUserRole = useCruseStore((s) => s.setUserRole);
   const setOrgInfo = useCruseStore((s) => s.setOrgInfo);
   const setRateLimit = useCruseStore((s) => s.setRateLimit);
+  const setHasByok = useCruseStore((s) => s.setHasByok);
+  const setKeySource = useCruseStore((s) => s.setKeySource);
   const { authFetch, API_BASE } = useAuthenticatedFetch();
   const { organization } = useOrganization();
   useSessionPersistence();
@@ -65,12 +67,14 @@ function AuthenticatedHome() {
         if (meData.rate_limit) {
           setRateLimit(meData.rate_limit.remaining, meData.rate_limit.limit);
         }
+        setHasByok(meData.has_byok || false);
+        setKeySource(meData.key_source || 'platform');
       } catch (err) {
         console.error('Failed to fetch init data:', err);
       }
     };
     fetchInit();
-  }, [authFetch, API_BASE, setAvailableSystems, setUserRole, setOrgInfo, setRateLimit, organization?.id]);
+  }, [authFetch, API_BASE, setAvailableSystems, setUserRole, setOrgInfo, setRateLimit, setHasByok, setKeySource, organization?.id]);
 
   return (
     <ErrorBoundary>

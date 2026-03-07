@@ -47,27 +47,29 @@ class RateLimiter:
         logger.info("Rate limiting enabled: %d requests/day per user", self._max_daily)
 
     async def check_and_increment(
-        self, user_id: str, role: str, db: AsyncSession
+        self, user_id: str, role: str, db: AsyncSession, *, has_byok: bool = False
     ) -> tuple[bool, int | None, int | None]:
         """Check whether a user may send a message and increment usage.
 
         Returns ``(allowed, remaining, limit)``.
-        *remaining* and *limit* are ``None`` for admin users or when limiting
-        is disabled.
+        *remaining* and *limit* are ``None`` for admin users, BYOK users, or
+        when limiting is disabled.
         """
-        if not self._enabled or role == "admin":
+        if not self._enabled or role == "admin" or has_byok:
             return True, None, None
 
         repo = UsageRepository(db)
         allowed, remaining = await repo.increment_and_check(user_id, self._max_daily)
         return allowed, remaining, self._max_daily
 
-    async def get_remaining(self, user_id: str, role: str, db: AsyncSession) -> tuple[int | None, int | None]:
+    async def get_remaining(
+        self, user_id: str, role: str, db: AsyncSession, *, has_byok: bool = False
+    ) -> tuple[int | None, int | None]:
         """Return ``(remaining, limit)`` without incrementing.
 
         Used by the ``/api/me`` endpoint to seed the frontend on page load.
         """
-        if not self._enabled or role == "admin":
+        if not self._enabled or role == "admin" or has_byok:
             return None, None
 
         repo = UsageRepository(db)

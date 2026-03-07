@@ -15,6 +15,7 @@ import { DebugDrawer } from '@/components/debug/DebugDrawer';
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
 import { HistoryDrawer } from '@/components/history/HistoryDrawer';
 import { NetworkDrawer } from '@/components/network/NetworkDrawer';
+import { SettingsDrawer } from '@/components/settings/SettingsDrawer';
 import { BackgroundEngine } from '@/components/theme/BackgroundEngine';
 import { SpotlightTour } from '@/components/tour/SpotlightTour';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -205,6 +206,9 @@ export function CruseLayout() {
 
       {/* Network visualization drawer */}
       <NetworkDrawer />
+
+      {/* Settings drawer */}
+      <SettingsDrawer />
 
       {/* Feedback dialog */}
       <FeedbackDialog />

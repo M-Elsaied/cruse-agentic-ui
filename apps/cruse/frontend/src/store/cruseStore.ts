@@ -3,6 +3,7 @@ import type { AgentTraceEntry, ServerLogEntry } from '@/types/debug';
 import type { ConversationDetail, ConversationSummary } from '@/types/history';
 import type { ConnectivityData } from '@/types/network';
 import type { BackgroundTheme } from '@/types/theme';
+import type { KeyInfo } from '@/types/settings';
 import type { WidgetCardDefinition } from '@/types/widget';
 
 export interface ChatMessage {
@@ -79,6 +80,13 @@ interface CruseState {
   feedbackDialogOpen: boolean;
   feedbackTargetMessage: ChatMessage | null;
 
+  // Settings / BYOK
+  settingsDrawerOpen: boolean;
+  settingsActiveTab: number;
+  apiKeys: KeyInfo[];
+  keySource: 'personal' | 'platform';
+  hasByok: boolean;
+
   // UI
   darkMode: boolean;
   pendingInput: string | null;
@@ -131,6 +139,12 @@ interface CruseState {
   removeFeedbackRating: (messageId: string) => void;
   openFeedbackDialog: (message: ChatMessage | null) => void;
   closeFeedbackDialog: () => void;
+  toggleSettingsDrawer: () => void;
+  setSettingsActiveTab: (tab: number) => void;
+  setApiKeys: (keys: KeyInfo[]) => void;
+  setKeySource: (source: 'personal' | 'platform') => void;
+  setHasByok: (has: boolean) => void;
+  openSettingsToKeys: () => void;
   setTourStep: (step: number) => void;
   endTour: () => void;
   reset: () => void;
@@ -173,6 +187,11 @@ const initialState = {
   feedbackRatings: {},
   feedbackDialogOpen: false,
   feedbackTargetMessage: null,
+  settingsDrawerOpen: false,
+  settingsActiveTab: 0,
+  apiKeys: [],
+  keySource: 'platform' as const,
+  hasByok: false,
   darkMode: true,
   pendingInput: null,
   widgetSubmitted: false,
@@ -261,6 +280,14 @@ export const useCruseStore = create<CruseState>((set) => ({
     }),
   openFeedbackDialog: (message) => set({ feedbackDialogOpen: true, feedbackTargetMessage: message }),
   closeFeedbackDialog: () => set({ feedbackDialogOpen: false, feedbackTargetMessage: null }),
+
+  toggleSettingsDrawer: () =>
+    set((state) => ({ settingsDrawerOpen: !state.settingsDrawerOpen })),
+  setSettingsActiveTab: (tab) => set({ settingsActiveTab: tab }),
+  setApiKeys: (keys) => set({ apiKeys: keys }),
+  setKeySource: (source) => set({ keySource: source }),
+  setHasByok: (has) => set({ hasByok: has }),
+  openSettingsToKeys: () => set({ settingsDrawerOpen: true, settingsActiveTab: 0 }),
 
   setTourStep: (step) => set({ tourStep: step }),
   endTour: () => set({ tourActive: false, tourStep: 0 }),

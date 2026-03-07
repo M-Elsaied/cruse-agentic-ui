@@ -47,6 +47,8 @@ export function InputBar() {
   const rateLimitRemaining = useCruseStore((s) => s.rateLimitRemaining);
   const rateLimitTotal = useCruseStore((s) => s.rateLimitTotal);
   const rateLimitExceeded = useCruseStore((s) => s.rateLimitExceeded);
+  const hasByok = useCruseStore((s) => s.hasByok);
+  const openSettingsToKeys = useCruseStore((s) => s.openSettingsToKeys);
   const viewingHistory = useCruseStore((s) => s.viewingConversation) !== null;
   const { sendMessage } = useWebSocket();
 
@@ -118,7 +120,15 @@ export function InputBar() {
       }}
     >
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-        {rateLimitRemaining !== null && rateLimitTotal !== null && (
+        {hasByok ? (
+          <Chip
+            label="Using your API key"
+            size="small"
+            color="success"
+            variant="outlined"
+            sx={{ alignSelf: 'flex-start' }}
+          />
+        ) : rateLimitRemaining !== null && rateLimitTotal !== null ? (
           <Chip
             label={
               rateLimitRemaining <= 0
@@ -128,9 +138,10 @@ export function InputBar() {
             size="small"
             color={rateLimitRemaining <= 5 ? 'warning' : 'default'}
             variant="outlined"
-            sx={{ alignSelf: 'flex-start' }}
+            sx={{ alignSelf: 'flex-start', cursor: rateLimitRemaining <= 0 ? 'pointer' : 'default' }}
+            onClick={rateLimitRemaining <= 0 ? openSettingsToKeys : undefined}
           />
-        )}
+        ) : null}
         {hasFormData && (
           <Chip
             icon={<FormIcon />}
@@ -153,7 +164,7 @@ export function InputBar() {
             viewingHistory
               ? 'Viewing history — start a new chat to send messages'
               : rateLimitExceeded
-                ? 'Daily request limit reached. Please try again tomorrow.'
+                ? 'Daily limit reached. Add your own API key in Settings to continue.'
                 : sessionId
                   ? hasFormData
                     ? 'Add a message (optional) and press Send to submit the form...'
