@@ -38,9 +38,11 @@ class ConversationRepository:
     def __init__(self, db: AsyncSession):
         self._db = db
 
-    async def create(self, session_id: str, user_id: str, agent_network: str) -> Conversation:
+    async def create(
+        self, session_id: str, user_id: str, agent_network: str, *, org_id: int | None = None
+    ) -> Conversation:
         """Create a new conversation."""
-        conversation = Conversation(session_id=session_id, user_id=user_id, agent_network=agent_network)
+        conversation = Conversation(session_id=session_id, user_id=user_id, agent_network=agent_network, org_id=org_id)
         self._db.add(conversation)
         await self._db.flush()
         return conversation

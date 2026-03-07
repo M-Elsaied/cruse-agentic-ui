@@ -48,6 +48,7 @@ class RequestLogRepository:
         completion_tokens: int | None = None,
         latency_ms: int | None = None,
         is_error: bool = False,
+        org_id: int | None = None,
     ) -> RequestLog:
         """Record a single request for analytics."""
         entry = RequestLog(
@@ -60,6 +61,7 @@ class RequestLogRepository:
             completion_tokens=completion_tokens,
             latency_ms=latency_ms,
             is_error=is_error,
+            org_id=org_id,
         )
         self._db.add(entry)
         await self._db.flush()
