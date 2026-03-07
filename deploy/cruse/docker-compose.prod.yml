@@ -33,6 +33,9 @@ services:
       - DATABASE_URL=postgresql+asyncpg://cruse:${POSTGRES_PASSWORD}@postgres:5432/cruse
       - FERNET_KEY=${FERNET_KEY:-}
       - MAX_DAILY_REQUESTS=${MAX_DAILY_REQUESTS:-50}
+      - FGA_API_URL=http://openfga:8080
+      - FGA_STORE_NAME=${FGA_STORE_NAME:-cruse}
+      - FGA_POLICY_FILE=plugins/authorization/openfga/sample_authorization_model.json
     volumes:
       - ../../registries:/app/registries:ro
       - ../../coded_tools:/app/coded_tools:ro
@@ -44,6 +47,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      openfga:
+        condition: service_started
     deploy:
       resources:
         limits:
@@ -75,6 +80,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./init-openfga-db.sh:/docker-entrypoint-initdb.d/init-openfga-db.sh:ro
     expose:
       - "5432"
     healthcheck:
@@ -82,6 +88,25 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    restart: unless-stopped
+
+  openfga:
+    image: openfga/openfga:latest
+    command: run
+    environment:
+      OPENFGA_DATASTORE_ENGINE: postgres
+      OPENFGA_DATASTORE_URI: postgres://cruse:${POSTGRES_PASSWORD}@postgres:5432/openfga
+    expose:
+      - "8080"
+      - "8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
     deploy:
       resources:
         limits:
