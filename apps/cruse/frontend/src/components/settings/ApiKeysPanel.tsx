@@ -245,16 +245,14 @@ export function ApiKeysPanel() {
                     placeholder={`Enter your ${PROVIDER_LABELS[provider] || provider} API key`}
                     value={keyInput}
                     onChange={(e) => setKeyInput(e.target.value)}
-                    slotProps={{
-                      input: {
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton size="small" onClick={() => setShowKey(!showKey)}>
-                              {showKey ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      },
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton size="small" onClick={() => setShowKey(!showKey)}>
+                            {showKey ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
                     }}
                   />
                   <TextField
