@@ -14,7 +14,7 @@
 #
 # END COPYRIGHT
 
-# pylint: disable=too-many-return-statements,too-many-branches,missing-function-docstring
+# pylint: disable=too-many-return-statements,too-many-branches,missing-function-docstring,too-many-arguments,too-many-positional-arguments
 
 import pytest
 
@@ -198,12 +198,15 @@ def mock_openfga() -> MockOpenFGAClient:
 def make_clerk_user():
     """Factory fixture: create ClerkUser instances for tests."""
 
-    def _make(user_id="user1", role="user", email=None, name=None):
+    def _make(user_id="user1", role="user", email=None, name=None, org_id=None, org_role=None, org_slug=None):
         return ClerkUser(
             user_id=user_id,
             email=email or f"{user_id}@test.com",
             role=role,
             name=name or user_id,
+            org_id=org_id,
+            org_role=org_role,
+            org_slug=org_slug,
         )
 
     return _make

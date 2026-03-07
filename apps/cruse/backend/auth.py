@@ -38,6 +38,9 @@ class ClerkUser:
     email: str | None
     role: str
     name: str | None
+    org_id: str | None = None
+    org_role: str | None = None
+    org_slug: str | None = None
 
 
 class ClerkJWTVerifier:
@@ -138,6 +141,9 @@ class ClerkJWTVerifier:
             email=metadata.get("email") or payload.get("email"),
             role=metadata.get("role", "user"),
             name=metadata.get("name") or payload.get("name"),
+            org_id=payload.get("org_id"),
+            org_role=payload.get("org_role"),
+            org_slug=payload.get("org_slug"),
         )
 
 

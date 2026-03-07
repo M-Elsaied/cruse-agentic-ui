@@ -66,6 +66,7 @@ class FeedbackRepository:
         conversation_id: int | None = None,
         message_id: int | None = None,
         context: dict | None = None,
+        org_id: int | None = None,
     ) -> FeedbackReport:
         """Create a written feedback report."""
         report = FeedbackReport(
@@ -75,6 +76,7 @@ class FeedbackRepository:
             conversation_id=conversation_id,
             message_id=message_id,
             context=context or {},
+            org_id=org_id,
         )
         self._db.add(report)
         await self._db.flush()
