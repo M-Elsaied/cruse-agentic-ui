@@ -207,7 +207,7 @@ export function AdminConversationsPanel() {
                   />
                   {msg.metadata?.latency_ms != null && (
                     <Typography variant="caption" sx={{ opacity: 0.5 }}>
-                      {msg.metadata.latency_ms}ms
+                      {String(msg.metadata.latency_ms)}ms
                     </Typography>
                   )}
                   <Typography variant="caption" sx={{ opacity: 0.4, ml: 'auto' }}>
