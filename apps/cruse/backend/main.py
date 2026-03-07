@@ -71,6 +71,8 @@ from apps.cruse.backend.session_manager import get_cruse_connectivity
 from apps.cruse.backend.session_store import SessionTimeoutManager
 from apps.cruse.backend.streaming_bridge import process_chat_message
 from apps.cruse.backend.streaming_bridge import send_event
+from apps.cruse.backend.tenant_context import TenantContext
+from apps.cruse.backend.tenant_context import resolve_tenant_context
 from apps.cruse.backend.theme_service import get_sample_queries_for_network
 from apps.cruse.backend.theme_service import get_theme_for_network
 
@@ -112,6 +114,15 @@ log_buffer = LogRingBuffer(maxlen=500)
 rate_limiter = RateLimiter()
 tuple_manager = TupleManager(openfga_client)
 authz_service = AuthorizationService(openfga_client)
+
+
+async def get_tenant(
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TenantContext:
+    """FastAPI dependency that resolves user + org into a TenantContext."""
+    await UserRepository(db).upsert_from_clerk(user.user_id, user.email, user.name, user.role)
+    return await resolve_tenant_context(user, db)
 
 
 # ─── REST Endpoints ──────────────────────────────────────────────
@@ -167,7 +178,11 @@ async def create_session(body: SessionCreate, user: ClerkUser = Depends(get_curr
         if factory is not None:
             try:
                 async with factory() as db:
-                    conv = await ConversationRepository(db).create(session_id, user.user_id, body.agent_network)
+                    # Resolve org for this session
+                    tenant = await resolve_tenant_context(user, db)
+                    conv = await ConversationRepository(db).create(
+                        session_id, user.user_id, body.agent_network, org_id=tenant.org_id
+                    )
                     await db.commit()
                     cruse_session = session_manager.get_session(session_id)
                     if cruse_session:
@@ -350,8 +365,11 @@ async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Que
 
 @app.get("/api/me")
 async def get_me(user: ClerkUser = Depends(get_current_user)):
-    """Return the authenticated user's info including role and rate limit."""
+    """Return the authenticated user's info including role, org, and rate limit."""
     result: dict = {"user_id": user.user_id, "email": user.email, "role": user.role}
+
+    if user.org_id:
+        result["org"] = {"org_id": user.org_id, "org_role": user.org_role, "org_slug": user.org_slug}
 
     # DB operations are best-effort — if the database is unavailable
     # we still return user info from the JWT.
@@ -360,6 +378,13 @@ async def get_me(user: ClerkUser = Depends(get_current_user)):
         try:
             async with factory() as db:
                 await UserRepository(db).upsert_from_clerk(user.user_id, user.email, user.name, user.role)
+                tenant = await resolve_tenant_context(user, db)
+                result["org"] = {
+                    "org_id": tenant.org.clerk_org_id,
+                    "org_name": tenant.org.name,
+                    "org_slug": tenant.org.slug,
+                    "is_org_admin": tenant.is_org_admin,
+                }
                 remaining, limit = await rate_limiter.get_remaining(user.user_id, user.role, db)
                 if remaining is not None:
                     result["rate_limit"] = {"remaining": remaining, "limit": limit}
@@ -534,6 +559,9 @@ async def post_report(
             context["agent_network"] = conv.agent_network
             context["session_id"] = conv.session_id
 
+    # Resolve org for this report
+    tenant = await resolve_tenant_context(user, db)
+
     report = await FeedbackRepository(db).add_report(
         user.user_id,
         body.body,
@@ -541,6 +569,7 @@ async def post_report(
         conversation_id=conversation_id,
         message_id=message_id,
         context=context or None,
+        org_id=tenant.org_id,
     )
     return ReportResponse(
         id=report.id,
