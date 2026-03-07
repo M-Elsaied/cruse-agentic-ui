@@ -227,7 +227,7 @@ export function AdminConversationsPanel() {
                 </Typography>
 
                 {/* Agent trace accordion (admin-only metadata) */}
-                {msg.metadata?.agent_trace && (
+                {Array.isArray(msg.metadata?.agent_trace) && (
                   <Accordion
                     disableGutters
                     elevation={0}
@@ -242,7 +242,7 @@ export function AdminConversationsPanel() {
                   >
                     <AccordionSummary expandIcon={<ExpandMore fontSize="small" />} sx={{ minHeight: 32 }}>
                       <Typography variant="caption" sx={{ fontWeight: 600, opacity: 0.7 }}>
-                        Agent Trace ({(msg.metadata.agent_trace as unknown[]).length} entries)
+                        Agent Trace ({(msg.metadata.agent_trace as unknown[]).length}{' '}entries)
                       </Typography>
                     </AccordionSummary>
                     <AccordionDetails sx={{ pt: 0 }}>
