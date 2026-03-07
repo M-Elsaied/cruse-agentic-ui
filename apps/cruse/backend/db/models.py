@@ -40,6 +40,41 @@ from sqlalchemy.orm import relationship
 from apps.cruse.backend.db.base import Base
 
 
+class Organization(Base):
+    """Organization record, upserted from Clerk JWT org claims."""
+
+    __tablename__ = "organizations"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    clerk_org_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug: Mapped[str | None] = mapped_column(String(255), unique=True)
+    settings: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),  # pylint: disable=not-callable
+    )
+
+
+class OrgMembership(Base):
+    """Tracks which users belong to which organizations and their role within."""
+
+    __tablename__ = "org_memberships"
+    __table_args__ = (
+        UniqueConstraint("org_id", "user_id"),
+        Index("idx_org_memberships_user", "user_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    org_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(255), ForeignKey("users.clerk_id", ondelete="CASCADE"), nullable=False)
+    org_role: Mapped[str] = mapped_column(String(50), nullable=False, server_default="member")
+    joined_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+
+
 class User(Base):
     """User record, upserted from Clerk JWT on first authenticated request."""
 
@@ -49,6 +84,7 @@ class User(Base):
     email: Mapped[str | None] = mapped_column(String(255))
     name: Mapped[str | None] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(50), nullable=False, server_default="user")
+    default_org_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("organizations.id"))
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
@@ -69,6 +105,7 @@ class DailyUsage(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[str] = mapped_column(String(255), ForeignKey("users.clerk_id"), nullable=False)
+    org_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("organizations.id"))
     usage_date: Mapped[date] = mapped_column(Date, nullable=False, server_default=func.current_date())
     request_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
@@ -85,6 +122,7 @@ class ApiKey(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[str] = mapped_column(String(255), ForeignKey("users.clerk_id"), nullable=False)
+    org_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("organizations.id"))
     provider: Mapped[str] = mapped_column(String(50), nullable=False)
     encrypted_key: Mapped[str] = mapped_column(Text, nullable=False)
     key_version: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default="1")
@@ -105,6 +143,7 @@ class UserPreference(Base):
     __tablename__ = "user_preferences"
 
     user_id: Mapped[str] = mapped_column(String(255), ForeignKey("users.clerk_id"), primary_key=True)
+    org_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("organizations.id"))
     preferred_provider: Mapped[str | None] = mapped_column(String(50))
     preferred_model: Mapped[str | None] = mapped_column(String(100))
     settings: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
@@ -128,6 +167,7 @@ class Conversation(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     session_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     user_id: Mapped[str] = mapped_column(String(255), ForeignKey("users.clerk_id"), nullable=False)
+    org_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("organizations.id"))
     agent_network: Mapped[str] = mapped_column(String(255), nullable=False)
     title: Mapped[str | None] = mapped_column(String(500))
     is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
@@ -185,6 +225,7 @@ class FeedbackReport(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[str] = mapped_column(String(255), ForeignKey("users.clerk_id"), nullable=False)
+    org_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("organizations.id"))
     conversation_id: Mapped[int | None] = mapped_column(
         BigInteger, ForeignKey("conversations.id", ondelete="SET NULL")
     )
@@ -207,6 +248,7 @@ class RequestLog(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[str] = mapped_column(String(255), ForeignKey("users.clerk_id"), nullable=False)
+    org_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("organizations.id"))
     conversation_id: Mapped[int | None] = mapped_column(
         BigInteger, ForeignKey("conversations.id", ondelete="SET NULL")
     )
