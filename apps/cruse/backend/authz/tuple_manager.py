@@ -14,9 +14,13 @@
 #
 # END COPYRIGHT
 
-import logging
+from __future__ import annotations
 
-from apps.cruse.backend.authz.openfga_client import CruseOpenFGAClient
+import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from apps.cruse.backend.authz.openfga_client import CruseOpenFGAClient
 
 logger = logging.getLogger(__name__)
 

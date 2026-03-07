@@ -14,12 +14,17 @@
 #
 # END COPYRIGHT
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from fastapi import HTTPException
 
 from apps.cruse.backend.auth import ClerkUser
-from apps.cruse.backend.authz.openfga_client import CruseOpenFGAClient
+
+if TYPE_CHECKING:
+    from apps.cruse.backend.authz.openfga_client import CruseOpenFGAClient
 
 logger = logging.getLogger(__name__)
 
