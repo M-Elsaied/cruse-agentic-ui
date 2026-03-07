@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Box, CircularProgress } from '@mui/material';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useOrganization } from '@clerk/nextjs';
 import { useCruseStore } from '@/store/cruseStore';
 import { useAuthenticatedFetch } from '@/utils/api';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -44,8 +44,10 @@ export default function Home() {
 function AuthenticatedHome() {
   const setAvailableSystems = useCruseStore((s) => s.setAvailableSystems);
   const setUserRole = useCruseStore((s) => s.setUserRole);
+  const setOrgInfo = useCruseStore((s) => s.setOrgInfo);
   const setRateLimit = useCruseStore((s) => s.setRateLimit);
   const { authFetch, API_BASE } = useAuthenticatedFetch();
+  const { organization } = useOrganization();
   useSessionPersistence();
 
   useEffect(() => {
@@ -59,6 +61,7 @@ function AuthenticatedHome() {
         setAvailableSystems(systemsData.systems || []);
         const meData = await meRes.json();
         setUserRole((meData.role === 'admin' ? 'admin' : 'user') as 'admin' | 'user');
+        setOrgInfo(meData.org_name || null, meData.org_slug || null, meData.is_org_admin || false);
         if (meData.rate_limit) {
           setRateLimit(meData.rate_limit.remaining, meData.rate_limit.limit);
         }
@@ -67,7 +70,7 @@ function AuthenticatedHome() {
       }
     };
     fetchInit();
-  }, [authFetch, API_BASE, setAvailableSystems, setUserRole, setRateLimit]);
+  }, [authFetch, API_BASE, setAvailableSystems, setUserRole, setOrgInfo, setRateLimit, organization?.id]);
 
   return (
     <ErrorBoundary>
