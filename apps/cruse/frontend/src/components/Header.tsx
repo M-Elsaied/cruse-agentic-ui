@@ -31,7 +31,7 @@ import {
   Hub as HubIcon,
   Menu as MenuIcon,
 } from '@mui/icons-material';
-import { UserButton } from '@clerk/nextjs';
+import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 import type { SelectChangeEvent } from '@mui/material';
 import { useCruseStore } from '@/store/cruseStore';
 import { useAuthenticatedFetch } from '@/utils/api';
@@ -255,6 +255,13 @@ export function Header() {
               <DarkMode sx={{ color: '#64748b' }} />
             )}
           </IconButton>
+
+          <OrganizationSwitcher
+            hidePersonal={false}
+            appearance={{
+              elements: { rootBox: { display: 'flex', alignItems: 'center' } },
+            }}
+          />
 
           <UserButton
             appearance={{
