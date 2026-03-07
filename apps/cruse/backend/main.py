@@ -33,6 +33,9 @@ from apps.cruse.backend.auth import clerk_verifier
 from apps.cruse.backend.auth import get_current_user
 from apps.cruse.backend.auth import require_admin
 from apps.cruse.backend.auth import verify_ws_token
+from apps.cruse.backend.authz.middleware import AuthorizationService
+from apps.cruse.backend.authz.openfga_client import openfga_client
+from apps.cruse.backend.authz.tuple_manager import TupleManager
 from apps.cruse.backend.db.engine import dispose_db
 from apps.cruse.backend.db.engine import get_db
 from apps.cruse.backend.db.engine import get_session_factory
@@ -107,6 +110,8 @@ session_manager = SessionManager()
 timeout_manager = SessionTimeoutManager(session_manager)
 log_buffer = LogRingBuffer(maxlen=500)
 rate_limiter = RateLimiter()
+tuple_manager = TupleManager(openfga_client)
+authz_service = AuthorizationService(openfga_client)
 
 
 # ─── REST Endpoints ──────────────────────────────────────────────
@@ -125,14 +130,21 @@ async def health_check():
             db_status = "not_initialized"
     except Exception:  # pylint: disable=broad-exception-caught
         db_status = "disconnected"
-    return {"status": "healthy", "database": db_status}
+    fga_status = "connected" if openfga_client.is_initialized else "not_initialized"
+    return {"status": "healthy", "database": db_status, "openfga": fga_status}
 
 
 @app.get("/api/systems")
-async def list_systems(_user: ClerkUser = Depends(get_current_user)):
-    """Return the list of available agent networks."""
+async def list_systems(user: ClerkUser = Depends(get_current_user)):
+    """Return the list of available agent networks.
+
+    Admin users see all networks. Non-admin users see only
+    industry/ and experimental/ networks.
+    """
     try:
         systems = session_manager.get_available_systems()
+        if user.role != "admin":
+            systems = [s for s in systems if s.startswith(("industry/", "experimental/"))]
         return {"systems": systems}
     except Exception as exc:
         logger.exception("Failed to list systems")
@@ -784,6 +796,16 @@ async def startup():
 
     await clerk_verifier.init()
     await rate_limiter.init()
+
+    # Initialize OpenFGA authorization
+    try:
+        await openfga_client.init()
+        # Bootstrap built-in network tuples so all users can read them
+        systems = session_manager.get_available_systems()
+        await tuple_manager.bootstrap_builtin_networks(systems)
+        logger.info("OpenFGA initialized with %d built-in network tuples", len(systems))
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.exception("Failed to initialize OpenFGA — running without authorization")
     # Attach the log ring buffer to the root logger for debug streaming
     log_buffer.setFormatter(logging.Formatter("%(message)s"))
     logging.getLogger().addHandler(log_buffer)
@@ -813,4 +835,5 @@ async def shutdown():
     await timeout_manager.stop()
     for info in session_manager.list_sessions():
         session_manager.destroy_session(info["session_id"])
+    await openfga_client.close()
     await dispose_db()
