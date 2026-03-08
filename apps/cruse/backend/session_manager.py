@@ -442,8 +442,16 @@ class SessionManager:
             excluded = {"experimental/cruse_agent"}
 
             logger.info("Parsing manifest for available systems (one-time)...")
-            restorer = RegistryManifestRestorer()
-            manifest_networks = restorer.restore()
+            try:
+                restorer = RegistryManifestRestorer()
+                manifest_networks = restorer.restore()
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.exception(
+                    "Failed to parse manifest — returning empty systems list. "
+                    "A custom network HOCON may have syntax errors."
+                )
+                _systems_cache = []
+                return _systems_cache
 
             # "public" storage contains networks marked as public in the manifest
             public_networks = manifest_networks.get("public", {})
