@@ -60,3 +60,18 @@ def test_invalid_slug_spaces():
 def test_empty_slug():
     errors = validate_slug("")
     assert len(errors) == 1
+
+
+def test_aaosa_substitutions_allowed():
+    hocon = """{
+      tools = [
+        {
+          name = "agent"
+          function = ${aaosa_call}
+          instructions = "You help users." ${aaosa_instructions}
+          command = ${aaosa_command}
+        }
+      ]
+    }"""
+    errors = validate_hocon(hocon)
+    assert not errors
