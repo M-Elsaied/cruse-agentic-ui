@@ -3,6 +3,7 @@ import type { AgentTraceEntry, ServerLogEntry } from '@/types/debug';
 import type { ConversationDetail, ConversationSummary } from '@/types/history';
 import type { ConnectivityData } from '@/types/network';
 import type { BackgroundTheme } from '@/types/theme';
+import type { NetworkDetail, NetworkListResponse } from '@/types/network-editor';
 import type { KeyInfo } from '@/types/settings';
 import type { WidgetCardDefinition } from '@/types/widget';
 
@@ -87,6 +88,12 @@ interface CruseState {
   keySource: 'personal' | 'platform';
   hasByok: boolean;
 
+  // Network Editor
+  networkEditorOpen: boolean;
+  customNetworks: NetworkListResponse;
+  editingNetwork: NetworkDetail | null;
+  networkEditorLoading: boolean;
+
   // UI
   darkMode: boolean;
   pendingInput: string | null;
@@ -145,6 +152,10 @@ interface CruseState {
   setKeySource: (source: 'personal' | 'platform') => void;
   setHasByok: (has: boolean) => void;
   openSettingsToKeys: () => void;
+  toggleNetworkEditor: () => void;
+  setCustomNetworks: (networks: NetworkListResponse) => void;
+  setEditingNetwork: (network: NetworkDetail | null) => void;
+  setNetworkEditorLoading: (loading: boolean) => void;
   setTourStep: (step: number) => void;
   endTour: () => void;
   reset: () => void;
@@ -192,6 +203,10 @@ const initialState = {
   apiKeys: [],
   keySource: 'platform' as const,
   hasByok: false,
+  networkEditorOpen: false,
+  customNetworks: { my_networks: [], shared_networks: [] },
+  editingNetwork: null,
+  networkEditorLoading: false,
   darkMode: true,
   pendingInput: null,
   widgetSubmitted: false,
@@ -288,6 +303,12 @@ export const useCruseStore = create<CruseState>((set) => ({
   setKeySource: (source) => set({ keySource: source }),
   setHasByok: (has) => set({ hasByok: has }),
   openSettingsToKeys: () => set({ settingsDrawerOpen: true, settingsActiveTab: 0 }),
+
+  toggleNetworkEditor: () =>
+    set((state) => ({ networkEditorOpen: !state.networkEditorOpen })),
+  setCustomNetworks: (networks) => set({ customNetworks: networks }),
+  setEditingNetwork: (network) => set({ editingNetwork: network }),
+  setNetworkEditorLoading: (loading) => set({ networkEditorLoading: loading }),
 
   setTourStep: (step) => set({ tourStep: step }),
   endTour: () => set({ tourActive: false, tourStep: 0 }),
