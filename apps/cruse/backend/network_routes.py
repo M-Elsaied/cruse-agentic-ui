@@ -147,6 +147,7 @@ async def create_network(
         description=body.description,
     )
     await db.flush()
+    await db.refresh(net)
 
     # Materialize to disk + invalidate caches
     network_materializer.materialize(net)
