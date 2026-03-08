@@ -727,11 +727,112 @@ async def admin_list_reports(
                 body=r.body,
                 status=r.status,
                 created_at=r.created_at.isoformat(),
+                user_id=r.user_id,
+                conversation_id=r.conversation_id,
+                message_id=r.message_id,
+                context=r.context,
             )
             for r in reports
         ],
         total=total,
     )
+
+
+async def _get_github_installation_token() -> tuple[str, str]:
+    """Generate a GitHub App installation token.
+
+    Returns (token, repo_slug).
+    Uses GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH, and GITHUB_REPO env vars.
+    """
+    import time  # pylint: disable=import-outside-toplevel
+
+    import httpx  # pylint: disable=import-outside-toplevel
+    import jwt  # pylint: disable=import-outside-toplevel
+
+    app_id = os.environ.get("GITHUB_APP_ID")
+    key_path = os.environ.get("GITHUB_APP_PRIVATE_KEY_PATH")
+    repo_slug = os.environ.get("GITHUB_REPO")
+    if not app_id or not key_path or not repo_slug:
+        raise HTTPException(
+            status_code=501,
+            detail="GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH, and GITHUB_REPO env vars required",
+        )
+
+    with open(key_path, "r", encoding="utf-8") as fh:
+        private_key = fh.read()
+
+    now = int(time.time())
+    payload = {"iat": now - 60, "exp": now + (10 * 60), "iss": int(app_id)}
+    app_jwt = jwt.encode(payload, private_key, algorithm="RS256")
+
+    headers = {"Authorization": f"Bearer {app_jwt}", "Accept": "application/vnd.github.v3+json"}
+    async with httpx.AsyncClient() as client:
+        # Find the installation for this repo
+        resp = await client.get(f"https://api.github.com/repos/{repo_slug}/installation", headers=headers)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"GitHub App not installed on {repo_slug}")
+        installation_id = resp.json()["id"]
+
+        # Get an installation access token
+        resp = await client.post(
+            f"https://api.github.com/app/installations/{installation_id}/access_tokens",
+            headers=headers,
+        )
+        if resp.status_code != 201:
+            raise HTTPException(status_code=502, detail="Failed to get GitHub installation token")
+        return resp.json()["token"], repo_slug
+
+
+@app.post("/api/admin/reports/{report_id}/github-issue")
+async def create_github_issue(
+    report_id: int,
+    _user: ClerkUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a GitHub issue from a feedback report (admin only)."""
+    import httpx  # pylint: disable=import-outside-toplevel
+
+    token, repo_slug = await _get_github_installation_token()
+
+    report = await FeedbackRepository(db).get_report_by_id(report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    # Build issue body with context metadata
+    lines = [f"**Category:** {report.category}", f"**Status:** {report.status}", ""]
+    if report.context:
+        if report.context.get("agent_network"):
+            lines.append(f"**Agent Network:** `{report.context['agent_network']}`")
+        if report.context.get("session_id"):
+            lines.append(f"**Session ID:** `{report.context['session_id']}`")
+        if report.context.get("agent_trace"):
+            lines.append(f"**Agent Trace:** {report.context['agent_trace']}")
+        lines.append("")
+    lines.append("## Description")
+    lines.append(report.body)
+    lines.append("")
+    lines.append(f"---\n*Auto-created from feedback report #{report.id}*")
+
+    label_map = {"bug": "bug", "feature": "enhancement", "general": "feedback"}
+    labels = [label_map.get(report.category, "feedback")]
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"https://api.github.com/repos/{repo_slug}/issues",
+            headers={
+                "Authorization": f"token {token}",
+                "Accept": "application/vnd.github.v3+json",
+            },
+            json={
+                "title": f"[{report.category.upper()}] {report.body[:80]}",
+                "body": "\n".join(lines),
+                "labels": labels,
+            },
+        )
+        if resp.status_code not in (200, 201):
+            raise HTTPException(status_code=502, detail=f"GitHub API error: {resp.text}")
+        issue_data = resp.json()
+        return {"issue_url": issue_data["html_url"], "issue_number": issue_data["number"]}
 
 
 # ─── Admin Endpoints ─────────────────────────────────────────────
