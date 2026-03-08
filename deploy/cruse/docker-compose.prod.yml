@@ -37,8 +37,8 @@ services:
       - FGA_STORE_NAME=${FGA_STORE_NAME:-cruse}
       - FGA_POLICY_FILE=plugins/authorization/openfga/sample_authorization_model.json
     volumes:
-      - ../../registries:/app/registries:ro
-      - registries_generated:/app/registries/generated
+      # Not :ro — materializer writes custom networks to registries/generated/
+      - ../../registries:/app/registries
       - ../../coded_tools:/app/coded_tools:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
@@ -117,4 +117,3 @@ services:
 
 volumes:
   pgdata:
-  registries_generated:
