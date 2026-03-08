@@ -1,12 +1,11 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Box,
   Button,
   ClickAwayListener,
-  Fab,
   Grow,
   Snackbar,
   TextField,
@@ -23,6 +22,10 @@ const categories = [
   { value: 'feature', label: 'Feature', icon: '✨' },
   { value: 'general', label: 'General', icon: '💬' },
 ] as const;
+
+const FAB_SIZE = 48;
+const FAB_SIZE_MOBILE = 40;
+const EDGE_MARGIN = 12;
 
 export function FeedbackBubble() {
   const darkMode = useCruseStore((s) => s.darkMode);
@@ -41,19 +44,70 @@ export function FeedbackBubble() {
     severity: 'success',
     message: '',
   });
+
+  // Drag state
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const dragging = useRef(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const posStart = useRef({ x: 0, y: 0 });
+  const hasMoved = useRef(false);
   const fabRef = useRef<HTMLButtonElement>(null);
+
+  // Set default position once on mount (bottom-left, above input bar)
+  useEffect(() => {
+    const size = isMobile ? FAB_SIZE_MOBILE : FAB_SIZE;
+    setPos({
+      x: EDGE_MARGIN,
+      y: window.innerHeight - size - (isMobile ? 80 : 90),
+    });
+  }, [isMobile]);
+
+  const clampPos = useCallback((x: number, y: number) => {
+    const size = isMobile ? FAB_SIZE_MOBILE : FAB_SIZE;
+    return {
+      x: Math.max(EDGE_MARGIN, Math.min(x, window.innerWidth - size - EDGE_MARGIN)),
+      y: Math.max(EDGE_MARGIN, Math.min(y, window.innerHeight - size - EDGE_MARGIN)),
+    };
+  }, [isMobile]);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (open) return; // Don't drag when panel is open
+    dragging.current = true;
+    hasMoved.current = false;
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    posStart.current = pos ?? { x: 0, y: 0 };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [open, pos]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      hasMoved.current = true;
+    }
+    setPos(clampPos(posStart.current.x + dx, posStart.current.y + dy));
+  }, [clampPos]);
+
+  const handlePointerUp = useCallback(() => {
+    dragging.current = false;
+  }, []);
+
+  const handleClick = useCallback(() => {
+    if (hasMoved.current) return; // Was a drag, not a click
+    setOpen((prev) => {
+      if (prev) {
+        setBody('');
+        setCategory('bug');
+      }
+      return !prev;
+    });
+  }, []);
 
   const reset = useCallback(() => {
     setBody('');
     setCategory('bug');
   }, []);
-
-  const handleToggle = useCallback(() => {
-    setOpen((prev) => {
-      if (prev) reset();
-      return !prev;
-    });
-  }, [reset]);
 
   const handleSubmit = async () => {
     if (!body.trim()) return;
@@ -88,18 +142,50 @@ export function FeedbackBubble() {
   const panelBg = darkMode ? 'rgba(15, 23, 42, 0.97)' : 'rgba(255, 255, 255, 0.98)';
   const borderColor = darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
 
+  if (!pos) return null;
+
+  // Panel position: above/below and left/right of FAB depending on where it is
+  const fabSize = isMobile ? FAB_SIZE_MOBILE : FAB_SIZE;
+  const panelWidth = isMobile ? Math.min(340, window.innerWidth - 24) : 360;
+  const panelOnRight = pos.x < window.innerWidth / 2;
+  const panelOnTop = pos.y > window.innerHeight / 2;
+
+  const panelStyle: React.CSSProperties = {
+    position: 'fixed',
+    width: panelWidth,
+    zIndex: 1201,
+    ...(panelOnRight
+      ? { left: pos.x }
+      : { right: window.innerWidth - pos.x - fabSize }),
+    ...(panelOnTop
+      ? { bottom: window.innerHeight - pos.y + 8 }
+      : { top: pos.y + fabSize + 8 }),
+  };
+
   return (
     <>
-      {/* Floating Action Button */}
-      <Fab
+      {/* Draggable FAB */}
+      <Box
+        component="button"
         ref={fabRef}
-        size={isMobile ? 'small' : 'medium'}
-        onClick={handleToggle}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onClick={handleClick}
         sx={{
           position: 'fixed',
-          bottom: isMobile ? 16 : 24,
-          right: isMobile ? 16 : 24,
+          left: pos.x,
+          top: pos.y,
+          width: fabSize,
+          height: fabSize,
+          borderRadius: '50%',
+          border: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: dragging.current ? 'grabbing' : 'grab',
           zIndex: 1200,
+          touchAction: 'none',
           bgcolor: open
             ? (darkMode ? 'rgba(239, 68, 68, 0.9)' : '#ef4444')
             : (darkMode ? 'rgba(59, 130, 246, 0.85)' : '#3b82f6'),
@@ -109,23 +195,19 @@ export function FeedbackBubble() {
               ? (darkMode ? 'rgba(220, 38, 38, 0.95)' : '#dc2626')
               : (darkMode ? 'rgba(37, 99, 235, 0.9)' : '#2563eb'),
           },
-          transition: 'all 0.2s ease',
-          boxShadow: open ? 'none' : '0 4px 20px rgba(59, 130, 246, 0.4)',
+          transition: dragging.current ? 'none' : 'background-color 0.2s ease',
+          boxShadow: open ? '0 2px 8px rgba(0,0,0,0.2)' : '0 4px 20px rgba(59, 130, 246, 0.4)',
         }}
       >
         {open ? <CloseIcon /> : <FeedbackIcon />}
-      </Fab>
+      </Box>
 
       {/* Feedback Panel */}
-      <Grow in={open} style={{ transformOrigin: 'bottom right' }}>
+      <Grow in={open} style={{ transformOrigin: panelOnTop ? 'bottom left' : 'top left' }}>
         <Box
           sx={{
-            position: 'fixed',
-            bottom: isMobile ? 64 : 88,
-            right: isMobile ? 8 : 24,
-            width: isMobile ? 'calc(100vw - 16px)' : 360,
+            ...panelStyle,
             maxHeight: isMobile ? '70vh' : 480,
-            zIndex: 1201,
             borderRadius: 3,
             overflow: 'hidden',
             bgcolor: panelBg,
