@@ -22,7 +22,7 @@ from apps.cruse.backend.network_validator import validate_slug
 
 def test_valid_hocon():
     errors = validate_hocon('{ key = "value" }')
-    assert errors == []
+    assert not errors
 
 
 def test_invalid_hocon_syntax():
@@ -44,7 +44,7 @@ def test_empty_content():
 
 
 def test_valid_slug():
-    assert validate_slug("my_agent_42") == []
+    assert not validate_slug("my_agent_42")
 
 
 def test_invalid_slug_uppercase():
