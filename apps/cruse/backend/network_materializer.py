@@ -17,7 +17,9 @@
 import logging
 import os
 
+from apps.cruse.backend.db.engine import get_session_factory
 from apps.cruse.backend.db.models import AgentNetwork
+from apps.cruse.backend.db.repositories.agent_network_repo import AgentNetworkRepository
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +142,18 @@ def _unregister_from_manifest(created_by: str, slug: str) -> None:
     with open(GENERATED_MANIFEST, "w", encoding="utf-8") as fh:
         fh.writelines(filtered)
     logger.debug("Unregistered %s from generated manifest", key)
+
+
+async def startup_materialize() -> None:
+    """Materialize all active custom networks from DB to disk at startup."""
+    ensure_generated_dir()
+    factory = get_session_factory()
+    if factory is None:
+        return
+    async with factory() as db:
+        nets = await AgentNetworkRepository(db).list_all_active()
+        materialize_all(nets)
+        logger.info("Materialized %d custom networks at startup", len(nets))
 
 
 def invalidate_caches() -> None:
