@@ -171,6 +171,10 @@ class ReportResponse(BaseModel):
     body: str
     status: str
     created_at: str
+    user_id: str | None = None
+    conversation_id: int | None = None
+    message_id: int | None = None
+    context: dict[str, Any] | None = None
 
 
 class ReportListResponse(BaseModel):
