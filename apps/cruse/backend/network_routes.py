@@ -166,6 +166,8 @@ async def create_network(
     except Exception:  # pylint: disable=broad-exception-caught
         log.exception("Failed to materialize network %s — DB record saved but file not written", net.slug)
 
+    # Re-fetch after all DB operations — flush() inside set_materialized expires ORM attributes
+    net = await repo.get_by_id(net.id)
     return _network_to_detail(net)
 
 
@@ -229,6 +231,8 @@ async def update_network(
     except Exception:  # pylint: disable=broad-exception-caught
         log.exception("Failed to materialize network %s after update", net.slug)
 
+    # Re-fetch after all DB operations — flush() inside set_materialized expires ORM attributes
+    net = await repo.get_by_id(net.id)
     return _network_to_detail(net)
 
 
