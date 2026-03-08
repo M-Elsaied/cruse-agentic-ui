@@ -43,6 +43,7 @@ export default function Home() {
 
 function AuthenticatedHome() {
   const setAvailableSystems = useCruseStore((s) => s.setAvailableSystems);
+  const setCustomNetworks = useCruseStore((s) => s.setCustomNetworks);
   const setUserRole = useCruseStore((s) => s.setUserRole);
   const setOrgInfo = useCruseStore((s) => s.setOrgInfo);
   const setRateLimit = useCruseStore((s) => s.setRateLimit);
@@ -61,6 +62,9 @@ function AuthenticatedHome() {
         ]);
         const systemsData = await systemsRes.json();
         setAvailableSystems(systemsData.systems || []);
+        if (systemsData.custom_networks) {
+          setCustomNetworks(systemsData.custom_networks);
+        }
         const meData = await meRes.json();
         setUserRole((meData.role === 'admin' ? 'admin' : 'user') as 'admin' | 'user');
         setOrgInfo(meData.org_name || null, meData.org_slug || null, meData.is_org_admin || false);
@@ -74,7 +78,7 @@ function AuthenticatedHome() {
       }
     };
     fetchInit();
-  }, [authFetch, API_BASE, setAvailableSystems, setUserRole, setOrgInfo, setRateLimit, setHasByok, setKeySource, organization?.id]);
+  }, [authFetch, API_BASE, setAvailableSystems, setCustomNetworks, setUserRole, setOrgInfo, setRateLimit, setHasByok, setKeySource, organization?.id]);
 
   return (
     <ErrorBoundary>
