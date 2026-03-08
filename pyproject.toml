@@ -18,6 +18,7 @@ known-first-party = ["apps", "coded_tools", "tests"]
 
 [tool.pylint]
 max-line-length = 119
+max-module-lines = 2000
 # Based on Google Python Style Guide
 disable = [
     "C0301",  # Line too long (handled by ruff)

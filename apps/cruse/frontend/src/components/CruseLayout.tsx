@@ -12,6 +12,7 @@ import { WidgetCard } from '@/components/widget/WidgetCard';
 import { AgentActivityBar } from '@/components/activity/AgentActivityBar';
 import { AdminDrawer } from '@/components/admin/AdminDrawer';
 import { DebugDrawer } from '@/components/debug/DebugDrawer';
+import { FeedbackBubble } from '@/components/feedback/FeedbackBubble';
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog';
 import { HistoryDrawer } from '@/components/history/HistoryDrawer';
 import { NetworkDrawer } from '@/components/network/NetworkDrawer';
@@ -187,7 +188,7 @@ export function CruseLayout() {
           onClick={() => setWidgetDrawerOpen(true)}
           sx={{
             position: 'fixed',
-            bottom: 80,
+            bottom: 72,
             right: 16,
             zIndex: 10,
           }}
@@ -214,8 +215,11 @@ export function CruseLayout() {
       {/* Settings drawer */}
       <SettingsDrawer />
 
-      {/* Feedback dialog */}
+      {/* Feedback dialog (message-specific, triggered by thumbs down) */}
       <FeedbackDialog />
+
+      {/* Floating feedback bubble (always available) */}
+      <FeedbackBubble />
 
       {/* Spotlight walkthrough tour */}
       <SpotlightTour />

@@ -82,6 +82,12 @@ class FeedbackRepository:
         await self._db.flush()
         return report
 
+    async def get_report_by_id(self, report_id: int) -> FeedbackReport | None:
+        """Get a single feedback report by ID."""
+        stmt = select(FeedbackReport).where(FeedbackReport.id == report_id)
+        result = await self._db.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def list_reports(
         self,
         *,
