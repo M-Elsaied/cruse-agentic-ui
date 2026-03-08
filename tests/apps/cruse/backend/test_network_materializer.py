@@ -53,7 +53,10 @@ def test_materialize_writes_file():
     path = network_materializer.materialize(net)
     assert os.path.exists(path)
     with open(path, encoding="utf-8") as fh:
-        assert fh.read() == HOCON
+        content = fh.read()
+    assert 'include "../aaosa_basic.hocon"' in content
+    assert 'include "../llm_config.hocon"' in content
+    assert HOCON in content
 
 
 def test_materialize_registers_in_manifest():

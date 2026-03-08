@@ -55,9 +55,10 @@ def validate_hocon(hocon_content: str) -> list[str]:
         errors.append("HOCON 'include' directives are not allowed in custom networks.")
         return errors
 
-    # Parse HOCON
+    # Parse HOCON — resolve=False allows ${aaosa_instructions} etc. which are
+    # provided by includes injected at materialization time, not in user content.
     try:
-        ConfigFactory.parse_string(hocon_content)
+        ConfigFactory.parse_string(hocon_content, resolve=False)
     except (ConfigException, Exception) as exc:  # pylint: disable=broad-exception-caught
         errors.append(f"Invalid HOCON syntax: {exc}")
 
