@@ -54,8 +54,8 @@ def test_materialize_writes_file():
     assert os.path.exists(path)
     with open(path, encoding="utf-8") as fh:
         content = fh.read()
-    assert 'include "../aaosa_basic.hocon"' in content
-    assert 'include "../llm_config.hocon"' in content
+    assert 'include "registries/aaosa_basic.hocon"' in content
+    assert 'include "registries/llm_config.hocon"' in content
     assert HOCON in content
 
 
