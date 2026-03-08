@@ -28,6 +28,7 @@ import {
   LightMode,
   Settings as SettingsIcon,
   Add as AddIcon,
+  Code as CodeIcon,
   History as HistoryIcon,
   Hub as HubIcon,
   Menu as MenuIcon,
@@ -67,6 +68,9 @@ export function Header() {
   const toggleHistoryDrawer = useCruseStore((s) => s.toggleHistoryDrawer);
   const settingsDrawerOpen = useCruseStore((s) => s.settingsDrawerOpen);
   const toggleSettingsDrawer = useCruseStore((s) => s.toggleSettingsDrawer);
+  const networkEditorOpen = useCruseStore((s) => s.networkEditorOpen);
+  const toggleNetworkEditor = useCruseStore((s) => s.toggleNetworkEditor);
+  const customNetworks = useCruseStore((s) => s.customNetworks);
   const setViewingConversation = useCruseStore((s) => s.setViewingConversation);
   const { authFetch, API_BASE } = useAuthenticatedFetch();
 
@@ -186,6 +190,26 @@ export function Header() {
           <MenuItem value="" disabled>
             Select Agent Network
           </MenuItem>
+          {customNetworks.my_networks.length > 0 && [
+            <ListSubheader key="header-my" sx={{ fontWeight: 700 }}>
+              My Networks
+            </ListSubheader>,
+            ...customNetworks.my_networks.map((n) => (
+              <MenuItem key={`my-${n.network_path}`} value={n.network_path} sx={{ pl: 4 }}>
+                {n.name}
+              </MenuItem>
+            )),
+          ]}
+          {customNetworks.shared_networks.length > 0 && [
+            <ListSubheader key="header-shared" sx={{ fontWeight: 700 }}>
+              Shared With Me
+            </ListSubheader>,
+            ...customNetworks.shared_networks.map((n) => (
+              <MenuItem key={`shared-${n.network_path}`} value={n.network_path} sx={{ pl: 4 }}>
+                {n.name}
+              </MenuItem>
+            )),
+          ]}
           {Object.entries(groupedSystems).map(([category, systems]) => [
             <ListSubheader key={`header-${category}`} sx={{ textTransform: 'capitalize', fontWeight: 700 }}>
               {category}
@@ -224,6 +248,12 @@ export function Header() {
           <Tooltip title={historyDrawerOpen ? 'Close history' : 'Conversation history'}>
             <IconButton onClick={toggleHistoryDrawer} size="small">
               <HistoryIcon sx={{ color: historyDrawerOpen ? '#3b82f6' : undefined }} />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title={networkEditorOpen ? 'Close network editor' : 'Custom networks'}>
+            <IconButton onClick={toggleNetworkEditor} size="small">
+              <CodeIcon sx={{ color: networkEditorOpen ? '#3b82f6' : undefined }} />
             </IconButton>
           </Tooltip>
 
@@ -314,6 +344,10 @@ export function Header() {
             <MenuItem onClick={() => { toggleHistoryDrawer(); setMobileMenuAnchor(null); }}>
               <ListItemIcon><HistoryIcon fontSize="small" /></ListItemIcon>
               <ListItemText>History</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={() => { toggleNetworkEditor(); setMobileMenuAnchor(null); }}>
+              <ListItemIcon><CodeIcon fontSize="small" /></ListItemIcon>
+              <ListItemText>Custom Networks</ListItemText>
             </MenuItem>
             <MenuItem onClick={() => { toggleSettingsDrawer(); setMobileMenuAnchor(null); }}>
               <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>

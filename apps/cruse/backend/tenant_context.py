@@ -17,9 +17,12 @@
 import logging
 from dataclasses import dataclass
 
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.cruse.backend.auth import ClerkUser
+from apps.cruse.backend.auth import get_current_user
+from apps.cruse.backend.db.engine import get_db
 from apps.cruse.backend.db.models import Organization
 from apps.cruse.backend.db.repositories.org_repo import OrgRepository
 from apps.cruse.backend.db.repositories.user_repo import UserRepository
@@ -40,6 +43,11 @@ class TenantContext:
     user: ClerkUser
     org: Organization
     is_org_admin: bool
+
+    @property
+    def user_id(self) -> str:
+        """Shortcut: Clerk user ID for ownership checks."""
+        return self.user.user_id
 
     @property
     def org_id(self) -> int:
@@ -84,6 +92,15 @@ async def resolve_tenant_context(user: ClerkUser, db: AsyncSession) -> TenantCon
     is_org_admin = org_role in ("admin", "owner")
 
     return TenantContext(user=user, org=org, is_org_admin=is_org_admin)
+
+
+async def get_tenant(
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> "TenantContext":
+    """FastAPI dependency that resolves user + org into a TenantContext."""
+    await UserRepository(db).upsert_from_clerk(user.user_id, user.email, user.name, user.role)
+    return await resolve_tenant_context(user, db)
 
 
 def _normalize_org_role(clerk_role: str | None) -> str:

@@ -77,13 +77,14 @@ from apps.cruse.backend.models import ServerEventType
 from apps.cruse.backend.models import SessionCreate
 from apps.cruse.backend.models import UserBreakdown
 from apps.cruse.backend.models import UserBreakdownResponse
+from apps.cruse.backend.network_routes import get_custom_networks_summary
+from apps.cruse.backend.network_routes import router as network_router
 from apps.cruse.backend.rate_limiter import RateLimiter
 from apps.cruse.backend.session_manager import SessionManager
 from apps.cruse.backend.session_manager import get_cruse_connectivity
 from apps.cruse.backend.session_store import SessionTimeoutManager
 from apps.cruse.backend.streaming_bridge import process_chat_message
 from apps.cruse.backend.streaming_bridge import send_event
-from apps.cruse.backend.tenant_context import TenantContext
 from apps.cruse.backend.tenant_context import resolve_tenant_context
 from apps.cruse.backend.theme_service import get_sample_queries_for_network
 from apps.cruse.backend.theme_service import get_theme_for_network
@@ -127,14 +128,7 @@ rate_limiter = RateLimiter()
 tuple_manager = TupleManager(openfga_client)
 authz_service = AuthorizationService(openfga_client)
 
-
-async def get_tenant(
-    user: ClerkUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> TenantContext:
-    """FastAPI dependency that resolves user + org into a TenantContext."""
-    await UserRepository(db).upsert_from_clerk(user.user_id, user.email, user.name, user.role)
-    return await resolve_tenant_context(user, db)
+app.include_router(network_router)
 
 
 # ─── REST Endpoints ──────────────────────────────────────────────
@@ -158,17 +152,31 @@ async def health_check():
 
 
 @app.get("/api/systems")
-async def list_systems(user: ClerkUser = Depends(get_current_user)):
-    """Return the list of available agent networks.
+async def list_systems(
+    user: ClerkUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the list of available agent networks, categorized.
 
-    Admin users see all networks. Non-admin users see only
-    industry/ and experimental/ networks.
+    Includes built-in networks (from manifest) plus custom networks
+    (from DB: user-owned and shared within org).
     """
     try:
         systems = session_manager.get_available_systems()
         if user.role != "admin":
             systems = [s for s in systems if s.startswith(("industry/", "experimental/"))]
-        return {"systems": systems}
+
+        # Categorize built-in networks
+        categorized: dict[str, list[str]] = {}
+        for s in systems:
+            category = s.split("/")[0] if "/" in s else "other"
+            categorized.setdefault(category, []).append(s)
+
+        result: dict = {"systems": systems, "categories": categorized}
+
+        result["custom_networks"] = await get_custom_networks_summary(user, db)
+
+        return result
     except Exception as exc:
         logger.exception("Failed to list systems")
         raise HTTPException(status_code=500, detail="Failed to retrieve available systems") from exc
@@ -934,13 +942,18 @@ async def startup():
         load_dotenv(_env_local, override=False)
 
     logger.info("CRUSE Next-Gen backend starting...")
-
-    # Initialize database
     try:
         await init_db()
         logger.info("Database initialized successfully")
     except Exception:  # pylint: disable=broad-exception-caught
         logger.exception("Failed to initialize database — running without persistence")
+
+    try:
+        from apps.cruse.backend import network_materializer  # pylint: disable=import-outside-toplevel
+
+        await network_materializer.startup_materialize()
+    except Exception:  # pylint: disable=broad-exception-caught
+        logger.exception("Failed to materialize custom networks at startup")
 
     await clerk_verifier.init()
     await rate_limiter.init()

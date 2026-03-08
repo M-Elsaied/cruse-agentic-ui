@@ -10,9 +10,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@clerk/nextjs": "6.12.12",
     "@emotion/cache": "11.14.0",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
+    "@monaco-editor/react": "^4.7.0",
     "@mui/icons-material": "5.18.0",
     "@mui/material": "5.18.0",
     "@mui/x-date-pickers": "7.29.4",
@@ -30,7 +32,6 @@
     "recharts": "2.15.0",
     "rehype-highlight": "7.0.2",
     "remark-gfm": "4.0.1",
-    "@clerk/nextjs": "6.12.12",
     "zustand": "4.5.7"
   },
   "engines": {

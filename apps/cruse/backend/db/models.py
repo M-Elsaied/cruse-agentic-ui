@@ -238,6 +238,35 @@ class FeedbackReport(Base):
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
 
 
+class AgentNetwork(Base):
+    """User-created custom agent network with HOCON content."""
+
+    __tablename__ = "agent_networks"
+    __table_args__ = (
+        UniqueConstraint("created_by", "slug", name="uq_agent_networks_user_slug"),
+        Index("idx_agent_networks_org", "org_id"),
+        Index("idx_agent_networks_creator", "created_by"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    org_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("organizations.id"))
+    created_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug: Mapped[str] = mapped_column(String(255), nullable=False)
+    hocon_content: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    is_shared: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    is_archived: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    last_materialized_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),  # pylint: disable=not-callable
+    )
+
+
 class RequestLog(Base):
     """Per-request analytics for admin dashboards."""
 
