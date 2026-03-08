@@ -317,3 +317,69 @@ class PreferenceUpdateRequest(BaseModel):
     preferred_provider: str | None = None
     preferred_model: str | None = None
     settings: dict[str, Any] | None = None
+
+
+# ─── Custom Network Models ──────────────────────────────────
+
+
+class NetworkCreateRequest(BaseModel):
+    """Request body for creating a custom agent network."""
+
+    name: str = Field(..., max_length=255)
+    slug: str = Field(..., max_length=255, pattern=r"^[a-z0-9_]+$")
+    hocon_content: str = Field(..., max_length=500 * 1024)
+    description: str | None = Field(None, max_length=2000)
+
+
+class NetworkUpdateRequest(BaseModel):
+    """Request body for updating network HOCON content."""
+
+    hocon_content: str = Field(..., max_length=500 * 1024)
+    name: str | None = Field(None, max_length=255)
+
+
+class NetworkMetadataUpdate(BaseModel):
+    """Request body for updating network metadata (description, sharing)."""
+
+    description: str | None = None
+    is_shared: bool | None = None
+
+
+class NetworkInfo(BaseModel):
+    """Network summary for list views."""
+
+    id: int
+    name: str
+    slug: str
+    description: str | None = None
+    is_shared: bool = False
+    network_path: str
+    created_at: str
+    updated_at: str
+
+
+class NetworkDetail(BaseModel):
+    """Full network detail including HOCON content."""
+
+    id: int
+    name: str
+    slug: str
+    description: str | None = None
+    hocon_content: str
+    is_shared: bool = False
+    network_path: str
+    created_at: str
+    updated_at: str
+
+
+class NetworkListResponse(BaseModel):
+    """Response listing owned and shared networks."""
+
+    my_networks: list[NetworkInfo]
+    shared_networks: list[NetworkInfo]
+
+
+class NetworkValidateRequest(BaseModel):
+    """Request body for validating HOCON without saving."""
+
+    hocon_content: str = Field(..., max_length=500 * 1024)
