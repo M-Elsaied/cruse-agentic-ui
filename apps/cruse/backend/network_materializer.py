@@ -76,8 +76,8 @@ def materialize(network: AgentNetwork) -> str:
         # ${aaosa_call}, ${aaosa_command}, and inherit the platform llm_config.
         # The user's HOCON is stored without includes (blocked by validator for security),
         # but the materialized file gets them injected server-side.
-        fh.write('include "registries/aaosa_basic.hocon"\n')
-        fh.write('include "registries/llm_config.hocon"\n\n')
+        fh.write('include "../aaosa_basic.hocon"\n')
+        fh.write('include "../llm_config.hocon"\n\n')
         fh.write(network.hocon_content)
     logger.info("Materialized network %s -> %s", network.slug, file_path)
 
