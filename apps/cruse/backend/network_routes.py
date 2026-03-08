@@ -17,6 +17,7 @@
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.cruse.backend.auth import ClerkUser
@@ -147,15 +148,18 @@ async def create_network(
         raise HTTPException(status_code=422, detail=hocon_errors[0])
 
     # repo.create() already flushes internally — refresh to load server defaults
-    net = await repo.create(
-        created_by=tenant.user_id,
-        name=body.name,
-        slug=body.slug,
-        hocon_content=body.hocon_content,
-        org_id=tenant.org_id,
-        description=body.description,
-    )
-    await db.refresh(net)
+    try:
+        net = await repo.create(
+            created_by=tenant.user_id,
+            name=body.name,
+            slug=body.slug,
+            hocon_content=body.hocon_content,
+            org_id=tenant.org_id,
+            description=body.description,
+        )
+        await db.refresh(net)
+    except IntegrityError as exc:
+        raise HTTPException(status_code=400, detail=f"A network with slug '{body.slug}' already exists") from exc
     log.info("Created network id=%s slug=%s for user=%s", net.id, net.slug, tenant.user_id)
 
     # Materialize to disk + invalidate caches
@@ -195,6 +199,8 @@ async def get_network(
     if not accessible:
         raise HTTPException(status_code=404, detail="Network not found")
     net = await repo.get_by_id(network_id)
+    if net is None:
+        raise HTTPException(status_code=404, detail="Network not found")
     return _network_to_detail(net)
 
 

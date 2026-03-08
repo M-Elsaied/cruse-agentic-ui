@@ -450,8 +450,8 @@ class SessionManager:
                     "Failed to parse manifest — returning empty systems list. "
                     "A custom network HOCON may have syntax errors."
                 )
-                _systems_cache = []
-                return _systems_cache
+                # Do NOT cache the empty list — next request should retry
+                return []
 
             # "public" storage contains networks marked as public in the manifest
             public_networks = manifest_networks.get("public", {})
