@@ -36,10 +36,14 @@ services:
       - FGA_API_URL=http://openfga:8080
       - FGA_STORE_NAME=${FGA_STORE_NAME:-cruse}
       - FGA_POLICY_FILE=plugins/authorization/openfga/sample_authorization_model.json
+      - GITHUB_APP_ID=${GITHUB_APP_ID:-}
+      - GITHUB_APP_PRIVATE_KEY_PATH=/app/cruse-feedback-bot.pem
+      - GITHUB_REPO=${GITHUB_REPO:-}
     volumes:
       # Not :ro — materializer writes custom networks to registries/generated/
       - ../../registries:/app/registries
       - ../../coded_tools:/app/coded_tools:ro
+      - /home/ubuntu/cruse-feedback-bot.pem:/app/cruse-feedback-bot.pem:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
       interval: 30s
