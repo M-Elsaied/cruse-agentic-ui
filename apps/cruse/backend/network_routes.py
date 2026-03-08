@@ -54,8 +54,13 @@ async def get_custom_networks_summary(user, db):
 
         return {"my_networks": [to_dict(n) for n in owned], "shared_networks": [to_dict(n) for n in shared]}
     except Exception:  # pylint: disable=broad-exception-caught
-        logging.getLogger(__name__).debug("Could not load custom networks for /api/systems")
+        logging.getLogger(__name__).exception("Could not load custom networks for /api/systems")
         return {"my_networks": [], "shared_networks": []}
+
+
+def _ts(value) -> str:
+    """Safely convert a datetime to ISO string, handling None."""
+    return value.isoformat() if value else ""
 
 
 def _network_to_info(net) -> NetworkInfo:
@@ -69,8 +74,8 @@ def _network_to_info(net) -> NetworkInfo:
         description=net.description,
         is_shared=net.is_shared,
         network_path=network_key(net.created_by, net.slug),
-        created_at=net.created_at.isoformat(),
-        updated_at=net.updated_at.isoformat(),
+        created_at=_ts(net.created_at),
+        updated_at=_ts(net.updated_at),
     )
 
 
@@ -86,8 +91,8 @@ def _network_to_detail(net) -> NetworkDetail:
         hocon_content=net.hocon_content,
         is_shared=net.is_shared,
         network_path=network_key(net.created_by, net.slug),
-        created_at=net.created_at.isoformat(),
-        updated_at=net.updated_at.isoformat(),
+        created_at=_ts(net.created_at),
+        updated_at=_ts(net.updated_at),
     )
 
 
@@ -113,9 +118,12 @@ async def create_network(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new custom agent network."""
+    import logging  # pylint: disable=import-outside-toplevel
+
     from apps.cruse.backend import network_materializer  # pylint: disable=import-outside-toplevel
     from apps.cruse.backend import network_validator  # pylint: disable=import-outside-toplevel
 
+    log = logging.getLogger(__name__)
     repo = AgentNetworkRepository(db)
 
     # Validate slug
@@ -138,6 +146,7 @@ async def create_network(
     if hocon_errors:
         raise HTTPException(status_code=422, detail=hocon_errors[0])
 
+    # repo.create() already flushes internally — refresh to load server defaults
     net = await repo.create(
         created_by=tenant.user_id,
         name=body.name,
@@ -146,13 +155,16 @@ async def create_network(
         org_id=tenant.org_id,
         description=body.description,
     )
-    await db.flush()
     await db.refresh(net)
+    log.info("Created network id=%s slug=%s for user=%s", net.id, net.slug, tenant.user_id)
 
     # Materialize to disk + invalidate caches
-    network_materializer.materialize(net)
-    await repo.set_materialized(net.id)
-    network_materializer.invalidate_caches()
+    try:
+        network_materializer.materialize(net)
+        await repo.set_materialized(net.id)
+        network_materializer.invalidate_caches()
+    except Exception:  # pylint: disable=broad-exception-caught
+        log.exception("Failed to materialize network %s — DB record saved but file not written", net.slug)
 
     return _network_to_detail(net)
 
@@ -192,9 +204,12 @@ async def update_network(
     db: AsyncSession = Depends(get_db),
 ):
     """Update network HOCON content. Owner only."""
+    import logging  # pylint: disable=import-outside-toplevel
+
     from apps.cruse.backend import network_materializer  # pylint: disable=import-outside-toplevel
     from apps.cruse.backend import network_validator  # pylint: disable=import-outside-toplevel
 
+    log = logging.getLogger(__name__)
     repo = AgentNetworkRepository(db)
     net = await repo.get_by_id(network_id)
     if net is None or net.created_by != tenant.user_id:
@@ -205,11 +220,15 @@ async def update_network(
         raise HTTPException(status_code=422, detail=hocon_errors[0])
 
     await repo.update_content(network_id, body.hocon_content, name=body.name)
-    # Re-fetch for response
     net = await repo.get_by_id(network_id)
-    network_materializer.materialize(net)
-    await repo.set_materialized(net.id)
-    network_materializer.invalidate_caches()
+
+    try:
+        network_materializer.materialize(net)
+        await repo.set_materialized(net.id)
+        network_materializer.invalidate_caches()
+    except Exception:  # pylint: disable=broad-exception-caught
+        log.exception("Failed to materialize network %s after update", net.slug)
+
     return _network_to_detail(net)
 
 
@@ -244,8 +263,11 @@ async def delete_network(
     db: AsyncSession = Depends(get_db),
 ):
     """Archive (soft-delete) a network. Owner only."""
+    import logging  # pylint: disable=import-outside-toplevel
+
     from apps.cruse.backend import network_materializer  # pylint: disable=import-outside-toplevel
 
+    log = logging.getLogger(__name__)
     repo = AgentNetworkRepository(db)
     net = await repo.get_by_id(network_id)
     if net is None or net.created_by != tenant.user_id:
@@ -254,6 +276,11 @@ async def delete_network(
     created_by = net.created_by
     slug = net.slug
     await repo.archive(network_id)
-    network_materializer.dematerialize(created_by, slug)
-    network_materializer.invalidate_caches()
+
+    try:
+        network_materializer.dematerialize(created_by, slug)
+        network_materializer.invalidate_caches()
+    except Exception:  # pylint: disable=broad-exception-caught
+        log.exception("Failed to dematerialize network %s/%s", created_by, slug)
+
     return {"status": "archived", "network_id": network_id}
