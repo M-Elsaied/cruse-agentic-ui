@@ -121,7 +121,10 @@ async def process_chat_message(
         # Best-effort: save assistant message + request log to DB (before emitting events
         # so we can include the DB message ID in the chat_complete payload for feedback)
         saved_message_id = await _persist_response(
-            cruse_session, response, trace_entries, latency_ms,
+            cruse_session,
+            response,
+            trace_entries,
+            latency_ms,
             next((c for k, c in blocks if k == "gui_json"), None),
         )
 
