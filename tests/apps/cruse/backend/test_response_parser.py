@@ -16,7 +16,6 @@
 
 """Unit tests for apps.cruse.backend.response_parser."""
 
-
 from apps.cruse.backend.response_parser import parse_response_blocks
 from apps.cruse.backend.response_parser import try_parse_json
 
