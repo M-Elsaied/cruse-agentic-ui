@@ -418,7 +418,9 @@ async def websocket_chat(websocket: WebSocket, session_id: str, token: str = Que
                 user_input = f"{msg.text}\n\nForm submission context: {msg.form_data}"
                 # Seed sly_data with form submission so coded tools (e.g., WidgetTemplateProvider)
                 # can surface previously collected fields to the LLM and avoid duplicate widgets.
-                ws_sly_data = cruse_session.state_info.get("sly_data") if cruse_session.state_info is not None else None
+                ws_sly_data = (
+                    cruse_session.state_info.get("sly_data") if cruse_session.state_info is not None else None
+                )
                 if ws_sly_data is not None:
                     widget_state = ws_sly_data.setdefault("widget_state", {})
                     submitted_fields = widget_state.setdefault("submitted_fields", [])
