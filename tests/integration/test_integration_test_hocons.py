@@ -221,6 +221,11 @@ class TestIntegrationTestHocons(TestCase, FailFastParamMixin):
                 "experimental/copy_cat/copy_hello_world.hocon",
                 "experimental/mdap_decomposer/long_multiplication.hocon",
                 "experimental/mdap_decomposer/list_sorting.hocon",
+                # Widget behavior fixes (#141, #104, #101, #90, #14)
+                "experimental/cruse_agent/widget_no_repeat.hocon",
+                "experimental/cruse_agent/widget_matches_context.hocon",
+                "experimental/cruse_agent/widget_info_no_widget.hocon",
+                "experimental/cruse_agent/widget_multi_turn.hocon",
                 # List more hocon files as they become available here.
             ]
         ),
