@@ -276,9 +276,30 @@ class WidgetTemplateProvider(CodedTool):
         ],
     }
 
+    @staticmethod
+    def _get_widget_context(sly_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract widget session context from sly_data.
+
+        Reads the widget_state bulletin board to provide the LLM with
+        awareness of previously submitted form data and widget history.
+
+        :param sly_data: The sly_data dictionary from the agent chain.
+        :return: A context dict suitable for inclusion in the LLM-visible response.
+        """
+        widget_state = sly_data.get("widget_state", {})
+        return {
+            "previously_submitted": widget_state.get("submission_data", {}),
+            "fields_already_collected": widget_state.get("submitted_fields", []),
+            "last_widget_fields": widget_state.get("last_widget_fields", []),
+            "widget_count_this_session": widget_state.get("widget_count", 0),
+        }
+
     def invoke(self, args: Dict[str, Any], sly_data: Dict[str, Any]) -> str:
         """
-        Provides widget schema template and examples.
+        Provides widget schema template, examples, and session context.
+
+        Reads ``sly_data["widget_state"]`` to surface previously submitted
+        form data and widget history so the LLM can avoid duplicate fields.
 
         :param args: An argument dictionary whose keys are the parameters
             to the coded tool and whose values are the values passed for
@@ -337,6 +358,13 @@ class WidgetTemplateProvider(CodedTool):
                     "Icons are displayed prominently - choose ones that match the widget purpose",
                 ],
             }
+
+        # Always include session context so the LLM knows what was already collected
+        result["session_context"] = self._get_widget_context(sly_data)
+
+        # Track this invocation in sly_data for downstream awareness
+        widget_state = sly_data.setdefault("widget_state", {})
+        widget_state["widget_count"] = widget_state.get("widget_count", 0) + 1
 
         return json.dumps(result, indent=2)
 
