@@ -30,6 +30,9 @@ def try_parse_json(content: str) -> Any:
     :param content: The string to attempt JSON parsing on.
     :return: Parsed JSON object if successful, None otherwise.
     """
+    if content is None:
+        return None
+
     # Try raw content first
     try:
         return json.loads(content)
