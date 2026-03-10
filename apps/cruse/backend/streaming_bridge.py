@@ -120,7 +120,13 @@ async def process_chat_message(
 
         # Best-effort: save assistant message + request log to DB (before emitting events
         # so we can include the DB message ID in the chat_complete payload for feedback)
-        saved_message_id = await _persist_response(cruse_session, response, trace_entries, latency_ms)
+        saved_message_id = await _persist_response(
+            cruse_session,
+            response,
+            trace_entries,
+            latency_ms,
+            next((c for k, c in blocks if k == "gui_json"), None),
+        )
 
         for kind, content in blocks:
             if kind == "say":
@@ -145,9 +151,16 @@ async def process_chat_message(
 
 
 async def _persist_response(
-    cruse_session: CruseSession, response: str, trace_entries: list, latency_ms: int
+    cruse_session: CruseSession,
+    response: str,
+    trace_entries: list,
+    latency_ms: int,
+    widget_schema: dict | None = None,
 ) -> int | None:
     """Best-effort: save assistant message and request log to the database.
+
+    Persists the widget schema (if any) alongside the agent trace for
+    post-hoc analysis of widget behavior patterns.
 
     Returns the saved message's DB id, or None if persistence failed.
     """
@@ -169,6 +182,8 @@ async def _persist_response(
             metadata = {"latency_ms": latency_ms}
             if trace_entries:
                 metadata["agent_trace"] = trace_entries
+            if widget_schema is not None:
+                metadata["widget_schema"] = widget_schema
             msg = await MessageRepository(db).append(
                 cruse_session.conversation_id, "assistant", response, metadata=metadata
             )

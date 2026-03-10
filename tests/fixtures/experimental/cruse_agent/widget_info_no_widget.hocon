@@ -1,0 +1,65 @@
+
+# Copyright © 2025-2026 Cognizant Technology Solutions Corp, www.cognizant.com.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# END COPYRIGHT
+
+# Widget suppression test: when the user asks a casual or informational
+# question the agent should respond with plain text only — no widget.
+# Addresses issues #101 and #90.
+
+{
+    "agent": "experimental/cruse_agent",
+
+    "connections": ["direct"],
+
+    "timeout_in_seconds": 300,
+
+    # Allow 1 success in 2 attempts — LLM response for casual questions can vary.
+    "success_ratio": "1/2",
+
+    "interactions": [
+        {
+            # Turn 1: Casual greeting — no input needed, no widget expected.
+            "sly_data": {
+                "selected_agent": "industry/booking"
+            },
+
+            "text": "Hi, what can you help me with?",
+
+            "continue_conversation": true,
+
+            "response": {
+                "text": {
+                    "gist": "The assistant describes travel-related capabilities it can help with"
+                }
+            }
+        },
+        {
+            # Turn 2: Informational question — answer should be text only, no form.
+            "sly_data": {
+                "selected_agent": "industry/booking"
+            },
+
+            "text": "What are the best neighborhoods to stay in when visiting San Francisco?",
+
+            "response": {
+                "text": {
+                    "gist": "The assistant provides information relevant to visiting or staying in San Francisco",
+                    "not_gist": "The assistant asks the user to submit a form with travel dates"
+                }
+            }
+        }
+    ]
+}

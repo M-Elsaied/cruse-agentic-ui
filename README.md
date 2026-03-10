@@ -110,20 +110,21 @@ cruse (front-man LLM)
 |--------|----------|-----------|
 | GUI output | Raw HTML (freeform) | JSON Schema (structured, validatable) |
 | Widget generation | Inline in front-man prompt | Dedicated `widget_generator` + `template_provider` |
-| Front-man instructions | ~15 lines, single step | ~30 lines, explicit 3-step protocol |
-| Widget skip logic | Always generates HTML | Can return `{"display": false}` |
+| Front-man instructions | ~15 lines, single step | Conditional; skips widget for info replies and post-submit |
+| Widget skip logic | Always generates HTML | `sly_data`-driven: suppressed for info replies, duplicates, post-submit |
 | Field types | Whatever HTML the LLM invents | 12 typed fields with validation |
 | Icons / colors | None | Material Design Icons + hex colors per widget |
 
 ### New Coded Tool: WidgetTemplateProvider
 
-`coded_tools/experimental/cruse_agent/widget_template_provider.py` — does not exist upstream.
+`coded_tools/experimental/cruse_widget_agent/widget_template_provider.py` — does not exist upstream.
 
 | Feature | Description |
 |---------|-------------|
 | `WIDGET_SCHEMA_TEMPLATE` | Base JSON Schema with placeholder fields for the LLM to fill |
 | `WIDGET_TYPE_EXAMPLES` | 12 field patterns (text, textarea, number, select, date, slider, etc.) |
 | `ICON_GUIDANCE` | 17 categories with 100+ Material Design icon names + selection principles |
+| `session_context` | Exposes prior submitted fields from `sly_data` so the LLM skips already-collected fields |
 
 ### Manifest Changes
 
@@ -177,11 +178,13 @@ for details.
  +------------------------------------------------------------------+
 ```
 
-**Request flow**: User sends a message via WebSocket → backend runs `CruseSession.chat()`
-in a thread pool → `cruse` front-man calls `domain_expert` (AAOSA Determine/Fulfill) then
-`widget_generator` → backend parses the `say:`/`gui:` response → emits typed WebSocket
-events (`chat_complete`, `widget_schema`, `agent_trace`, `done`) → frontend updates store
-and renders.
+**Request flow**: User sends a message via WebSocket → backend seeds `sly_data["widget_state"]`
+with any submitted form data → runs `CruseSession.chat()` in a thread pool → `cruse` front-man
+calls `domain_expert` (AAOSA Determine/Fulfill), then conditionally calls `widget_generator`
+(suppressed for informational responses and after form submissions) → `widget_generator` calls
+`template_provider` which reads `sly_data` to surface already-collected fields → backend parses
+the `say:`/`gui:` response → emits typed WebSocket events (`chat_complete`, `widget_schema`,
+`agent_trace`, `done`) → frontend updates store and renders.
 
 ---
 
@@ -388,7 +391,9 @@ using `@rjsf/mui`. Example:
 1. Agent response contains `gui:` block → backend emits `widget_schema` event
 2. Left panel slides open (420px) → `SchemaForm` renders the JSON Schema
 3. User fills form → presses Send → `form_data` attached to next WebSocket message
-4. Success overlay (1.8s) → widget clears → full-width chat resumes
+4. Backend records submitted fields into `sly_data["widget_state"]` so the agent chain
+   knows what was already collected and will not ask for the same fields again
+5. Success overlay (1.8s) → widget clears → full-width chat resumes
 
 ---
 
@@ -448,9 +453,9 @@ apps/cruse/
         ├── store/              # Zustand store
         └── types/              # TypeScript definitions
 
-coded_tools/experimental/cruse_agent/
+coded_tools/experimental/cruse_widget_agent/
 ├── call_agent.py               # Domain expert (upstream)
-└── widget_template_provider.py # Widget schemas (NEW)
+└── widget_template_provider.py # Widget schemas + sly_data state bridge (NEW)
 
 registries/experimental/
 ├── cruse_agent.hocon           # Agent network (modified)
@@ -467,7 +472,7 @@ registries/experimental/
 - **Widget learning** — track which fields users fill vs skip
 - **Multi-modal input** — support image and voice attachments
 - **Agent self-correction** — retry with template examples on parse failure
-- **Multi-turn widgets** — follow-up forms that refine based on previous submissions
+- **Multi-turn widgets** *(done)* — `sly_data["widget_state"]` tracks submitted fields across turns
 
 ### Performance
 

@@ -1,0 +1,74 @@
+
+# Copyright © 2025-2026 Cognizant Technology Solutions Corp, www.cognizant.com.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# END COPYRIGHT
+
+# Widget no-repeat test: after submitting a form the agent should NOT
+# generate another widget asking for the same fields.
+# Addresses issues #104 and #90.
+
+{
+    "agent": "experimental/cruse_agent",
+
+    "connections": ["direct"],
+
+    "timeout_in_seconds": 300,
+
+    "interactions": [
+        {
+            # Turn 1: User asks to book a hotel — agent should ask for details.
+            # sly_data seeds selected_agent so domain_expert (CallAgent) knows which agent to call.
+            "sly_data": {
+                "selected_agent": "industry/booking"
+            },
+
+            "text": "I want to book a hotel room in downtown Santa Cruz",
+
+            "continue_conversation": true,
+
+            "response": {
+                "text": {
+                    "gist": "The assistant responds about hotel booking in Santa Cruz"
+                }
+            }
+        },
+        {
+            # Turn 2: User submits the form — agent should NOT re-ask for dates/budget.
+            # sly_data also seeds widget_state to simulate what the backend would have set.
+            "sly_data": {
+                "selected_agent": "industry/booking",
+                "widget_state": {
+                    "submitted_fields": ["checkInDate", "checkOutDate", "budget"],
+                    "submission_data": {
+                        "checkInDate": "2026-03-09",
+                        "checkOutDate": "2026-03-10",
+                        "budget": 250
+                    }
+                }
+            },
+
+            "text": "Form submitted:\n• Check In Date: 2026-03-09\n• Check Out Date: 2026-03-10\n• Budget: $250\n\nForm submission context: {'checkInDate': '2026-03-09', 'checkOutDate': '2026-03-10', 'budget': 250}",
+
+            "continue_conversation": true,
+
+            "response": {
+                "text": {
+                    "gist": "The assistant acknowledges the booking details and provides options or next steps",
+                    "not_gist": "The assistant asks again for check-in date, check-out date, or budget that was already provided"
+                }
+            }
+        }
+    ]
+}
