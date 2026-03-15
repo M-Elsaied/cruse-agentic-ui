@@ -132,7 +132,7 @@ export function InputBar() {
           <Chip
             label={
               rateLimitRemaining <= 0
-                ? 'No requests left today. Resets at midnight UTC.'
+                ? `No requests left today. Resets at ${new Date(new Date().setUTCHours(24, 0, 0, 0)).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}.`
                 : `${rateLimitRemaining} request${rateLimitRemaining === 1 ? '' : 's'} left today`
             }
             size="small"
